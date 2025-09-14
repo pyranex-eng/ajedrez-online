@@ -199,6 +199,109 @@
             background-color: #555;
             cursor: not-allowed;
         }
+
+        /* Modal para crear sala */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #2b2b48;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 10px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.8rem;
+            color: #e94560;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 8px;
+            background-color: #333;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #7289da;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #confirm-create-room {
+            background-color: #e94560;
+            color: #fff;
+        }
+
+        #confirm-create-room:hover {
+            background-color: #ff6a80;
+        }
+
+        #cancel-create-room {
+            background-color: #555;
+            color: #fff;
+        }
+
+        #cancel-create-room:hover {
+            background-color: #666;
+        }
     </style>
 </head>
 <body>
@@ -220,38 +323,70 @@
                 <h2>Salas Disponibles</h2>
                 <button id="create-room-btn"><i class="fas fa-plus-circle"></i> Crear Nueva Sala</button>
             </div>
-            <ul id="rooms-list"></ul>
+            <ul id="rooms-list">
+                <li class="room-item">
+                    <div class="room-details">
+                        <h3>Cargando salas...</h3>
+                        <p>Esperando datos del servidor</p>
+                    </div>
+                </li>
+            </ul>
         </section>
     </main>
-    
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-        import { getDatabase, ref, get, push, update, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
-        // Configuración de Firebase
+    <!-- Modal para crear sala -->
+    <div id="create-room-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Crear Nueva Sala</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="room-name">Nombre de la Sala</label>
+                <input type="text" id="room-name" placeholder="Ej: 🏆 Sala Maestros ♟️" maxlength="30">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-create-room">Cancelar</button>
+                <button id="confirm-create-room">Crear Sala</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Usamos la misma versión de Firebase que en los otros archivos (v8.10.1) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
         const firebaseConfig = {
             apiKey: "AIzaSyAELxl8vQ3hea6OaD1pwZaoIDUrxY07vwg",
             authDomain: "ajedrez-online-9da63.firebaseapp.com",
+            databaseURL: "https://ajedrez-online-9da63-default-rtdb.firebaseio.com",
             projectId: "ajedrez-online-9da63",
             storageBucket: "ajedrez-online-9da63.firebasestorage.app",
             messagingSenderId: "841079328346",
             appId: "1:841079328346:web:2a2f66f352ee8932ad9263",
-            measurementId: "G-ML6HGX08LE",
-            databaseURL: "https://ajedrez-online-9da63-default-rtdb.firebaseio.com"
+            measurementId: "G-ML6HGX08LE"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const database = getDatabase(app);
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
 
-        const roomsRef = ref(database, 'rooms');
-        const usersRef = ref(database, 'users');
+        const roomsRef = database.ref('rooms');
+        const usersRef = database.ref('users');
         const roomsList = document.getElementById('rooms-list');
         const createRoomBtn = document.getElementById('create-room-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const usernameDisplay = document.getElementById('username-display');
         const userAvatarDisplay = document.getElementById('user-avatar-display');
+        
+        // Elementos del modal
+        const createRoomModal = document.getElementById('create-room-modal');
+        const roomNameInput = document.getElementById('room-name');
+        const confirmCreateBtn = document.getElementById('confirm-create-room');
+        const cancelCreateBtn = document.getElementById('cancel-create-room');
+        const closeModalBtn = document.querySelector('.close-modal');
 
         // Función para obtener el ícono de Font Awesome basado en el nombre del avatar
         function getAvatarIcon(avatarName) {
@@ -262,15 +397,35 @@
                 'avatar4': 'fa-chess-bishop',
                 'avatar5': 'fa-chess-pawn'
             };
-            return icons[avatarName] || 'fa-user'; // Default a 'fa-user' si no se encuentra
+            return icons[avatarName] || 'fa-user';
         }
 
         // Renderiza la lista de salas
         function renderRooms(roomsData) {
             roomsList.innerHTML = '';
-            if (!roomsData) return;
+            
+            if (!roomsData || Object.keys(roomsData).length === 0) {
+                roomsList.innerHTML = `
+                    <li class="room-item">
+                        <div class="room-details">
+                            <h3>No hay salas disponibles</h3>
+                            <p>Crea una nueva sala para comenzar a jugar</p>
+                        </div>
+                    </li>
+                `;
+                return;
+            }
+            
+            // Eliminar salas vacías
+            Object.entries(roomsData).forEach(([roomId, roomData]) => {
+                if (!roomData.players || Object.keys(roomData.players).length === 0) {
+                    database.ref('rooms/' + roomId).remove();
+                }
+            });
 
             Object.entries(roomsData).forEach(([key, value]) => {
+                if (!value.players) return;
+                
                 const players = value.players;
                 const playerKeys = Object.keys(players);
                 const playerCount = playerKeys.length;
@@ -287,11 +442,12 @@
                 }).join('');
 
                 const emptySlots = 2 - playerCount;
-                const emptySlotsHtml = emptySlots > 0 ? `<div class="player-avatar-small"><i class="fas fa-question"></i></div>` : '';
+                const emptySlotsHtml = emptySlots > 0 ? 
+                    Array(emptySlots).fill('<div class="player-avatar-small"><i class="fas fa-question"></i></div>').join('') : '';
 
                 roomItem.innerHTML = `
                     <div class="room-details">
-                        <h3>${value.name}</h3>
+                        <h3>${value.name || 'Sala sin nombre'}</h3>
                         <p>${playerCount} / 2 jugadores</p>
                     </div>
                     <div class="players-avatars">
@@ -299,7 +455,7 @@
                         ${emptySlotsHtml}
                     </div>
                     <div class="room-actions">
-                        <button onclick="joinRoom('${key}', '${auth.currentUser.uid}')" ${isFull ? 'disabled class="disabled-btn"' : ''}>
+                        <button onclick="joinRoom('${key}')" ${isFull ? 'disabled class="disabled-btn"' : ''}>
                             ${isFull ? 'Llena' : 'Unirse'}
                         </button>
                     </div>
@@ -308,44 +464,83 @@
             });
         }
 
-        // Lógica de autenticación
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const userRef = ref(database, 'users/' + user.uid);
-                onValue(userRef, (snapshot) => {
-                    const userData = snapshot.val();
-                    if (userData) {
-                        usernameDisplay.textContent = userData.username;
-                        userAvatarDisplay.innerHTML = `<i class="fas ${getAvatarIcon(userData.avatar)}"></i>`;
-                    }
-                });
-
-                onValue(roomsRef, (snapshot) => {
-                    renderRooms(snapshot.val());
-                });
-            } else {
-                window.location.href = 'login-registro.html';
-            }
-        });
-
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                window.location.href = 'login-registro.html';
-            }).catch((error) => {
-                console.error("Error al cerrar sesión:", error);
-            });
-        });
-
-        createRoomBtn.addEventListener('click', () => {
+        // Función para unirse a una sala
+        window.joinRoom = function(roomId) {
             const user = auth.currentUser;
-            const userRef = ref(database, 'users/' + user.uid);
-            get(userRef).then((snapshot) => {
+            if (!user) {
+                window.location.href = 'login-registro.html';
+                return;
+            }
+            
+            const userRef = database.ref('users/' + user.uid);
+            userRef.once('value').then((userSnapshot) => {
+                const userData = userSnapshot.val();
+                if (userData) {
+                    const roomRef = database.ref('rooms/' + roomId);
+                    roomRef.once('value').then((roomSnapshot) => {
+                        const roomData = roomSnapshot.val();
+                        if (roomData && roomData.players && Object.keys(roomData.players).length < 2) {
+                            // Asignar color (blanco o negro)
+                            const playerColor = Object.keys(roomData.players).length === 0 ? 'white' : 'black';
+                            
+                            roomRef.child('players/' + user.uid).set({
+                                username: userData.username,
+                                avatar: userData.avatar,
+                                color: playerColor
+                            }).then(() => {
+                                window.location.href = `ajedrez.html?room=${roomId}`;
+                            }).catch(error => {
+                                console.error('Error al unirse a la sala:', error);
+                                alert('Error al unirse a la sala. Inténtalo de nuevo.');
+                            });
+                        } else {
+                            alert('La sala está llena o no existe.');
+                        }
+                    }).catch(error => {
+                        console.error('Error al acceder a la sala:', error);
+                        alert('Error al acceder a la sala. Inténtalo de nuevo.');
+                    });
+                }
+            });
+        };
+
+        // Abrir modal para crear sala
+        createRoomBtn.addEventListener('click', () => {
+            createRoomModal.style.display = 'flex';
+            roomNameInput.value = '';
+            roomNameInput.focus();
+        });
+
+        // Cerrar modal
+        function closeModal() {
+            createRoomModal.style.display = 'none';
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+        cancelCreateBtn.addEventListener('click', closeModal);
+
+        // Crear sala con el nombre personalizado
+        confirmCreateBtn.addEventListener('click', () => {
+            const roomName = roomNameInput.value.trim();
+            if (!roomName) {
+                alert('Por favor, ingresa un nombre para la sala.');
+                return;
+            }
+
+            const user = auth.currentUser;
+            if (!user) {
+                window.location.href = 'login-registro.html';
+                return;
+            }
+
+            const userRef = database.ref('users/' + user.uid);
+            userRef.once('value').then((snapshot) => {
                 const userData = snapshot.val();
                 if (userData) {
-                    const roomName = `${userData.username}'s Sala`;
-                    const newRoomRef = push(roomsRef);
+                    const newRoomRef = roomsRef.push();
                     const newRoomId = newRoomRef.key;
-                    update(newRoomRef, {
+                    
+                    newRoomRef.set({
                         name: roomName,
                         createdAt: Date.now(),
                         players: {
@@ -354,41 +549,75 @@
                                 avatar: userData.avatar,
                                 color: 'white'
                             }
+                        },
+                        gameState: {
+                            turn: 'white',
+                            // Aquí iría el estado inicial del tablero
                         }
                     }).then(() => {
+                        closeModal();
                         window.location.href = `ajedrez.html?room=${newRoomId}`;
+                    }).catch(error => {
+                        console.error('Error al crear la sala:', error);
+                        alert('Error al crear la sala. Inténtalo de nuevo.');
                     });
                 }
             });
         });
 
-        window.joinRoom = function(roomId, userId) {
-            const roomRef = ref(database, 'rooms/' + roomId);
-            get(roomRef).then((snapshot) => {
-                const roomData = snapshot.val();
-                if (roomData && Object.keys(roomData.players).length < 2) {
-                    const user = auth.currentUser;
-                    const userRef = ref(database, 'users/' + user.uid);
-                    get(userRef).then((userSnapshot) => {
-                        const userData = userSnapshot.val();
-                        if (userData) {
-                            const playerRef = ref(database, 'rooms/' + roomId + '/players/' + user.uid);
-                            update(playerRef, {
-                                username: userData.username,
-                                avatar: userData.avatar,
-                                color: 'black'
-                            }).then(() => {
-                                window.location.href = `ajedrez.html?room=${roomId}`;
-                            });
-                        }
+        // Cerrar sesión
+        logoutBtn.addEventListener('click', () => {
+            const user = auth.currentUser;
+            if (user) {
+                // Actualizar estado a desconectado
+                database.ref('users/' + user.uid).update({
+                    online: false,
+                    lastLogin: Date.now()
+                }).then(() => {
+                    auth.signOut().then(() => {
+                        window.location.href = 'login-registro.html';
                     });
-                } else {
-                    console.log('La sala está llena o no existe.');
-                }
-            }).catch(error => {
-                console.error('Error al unirse a la sala:', error);
-            });
-        };
+                });
+            } else {
+                window.location.href = 'login-registro.html';
+            }
+        });
+
+        // Verificar autenticación y cargar datos
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                const userRef = database.ref('users/' + user.uid);
+                userRef.once('value').then((snapshot) => {
+                    const userData = snapshot.val();
+                    if (userData) {
+                        usernameDisplay.textContent = userData.username;
+                        const avatarIcon = getAvatarIcon(userData.avatar);
+                        userAvatarDisplay.innerHTML = `<i class="fas ${avatarIcon}"></i>`;
+                        
+                        // Actualizar estado a conectado
+                        userRef.update({
+                            online: true,
+                            lastLogin: Date.now()
+                        });
+                    }
+                });
+
+                // Escuchar cambios en las salas
+                roomsRef.on('value', (snapshot) => {
+                    const roomsData = snapshot.val();
+                    renderRooms(roomsData);
+                });
+            } else {
+                window.location.href = 'login-registro.html';
+            }
+        });
+
+        // Cerrar modal si se hace clic fuera del contenido
+        window.addEventListener('click', (event) => {
+            if (event.target === createRoomModal) {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
