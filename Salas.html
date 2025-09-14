@@ -153,6 +153,11 @@
             background: #6a4ca3;
         }
         
+        .join-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
         .create-room-btn {
             margin-top: 30px;
             padding: 12px 20px;
@@ -172,9 +177,30 @@
             transform: translateY(-2px);
         }
         
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            color: #78b9ff;
+        }
+        
+        .error-message {
+            color: #ff6b6b;
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 5px;
+        }
+        
         @media (max-width: 768px) {
             .rooms-container {
                 grid-template-columns: 1fr;
+            }
+            
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
             }
         }
     </style>
@@ -191,6 +217,8 @@
     
     <main>
         <h2>Salas disponibles</h2>
+        <div class="loading" id="loading-message">Cargando salas...</div>
+        <div class="error-message" id="error-message" style="display: none;"></div>
         <div class="rooms-container" id="rooms-container">
             <!-- Las salas se cargarán dinámicamente con JavaScript -->
         </div>
@@ -206,16 +234,16 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // Configuración de Firebase (debe ser la misma que en login-registro.html)
+        // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAELxl8vQ3hea6OaD1pwZaoIDUrxY07vwg",
             authDomain: "ajedrez-online-9da63.firebaseapp.com",
+            databaseURL: "https://ajedrez-online-9da63-default-rtdb.firebaseio.com",
             projectId: "ajedrez-online-9da63",
             storageBucket: "ajedrez-online-9da63.firebasestorage.app",
             messagingSenderId: "841079328346",
             appId: "1:841079328346:web:2a2f66f352ee8932ad9263",
-            measurementId: "G-ML6HGX08LE",
-            databaseURL: "https://ajedrez-online-9da63-default-rtdb.firebaseio.com/"
+            measurementId: "G-ML6HGX08LE"
         };
         
         // Inicializar Firebase
@@ -229,20 +257,22 @@
         const logoutBtn = document.getElementById('logout-btn');
         const roomsContainer = document.getElementById('rooms-container');
         const createRoomBtn = document.getElementById('create-room-btn');
+        const loadingMessage = document.getElementById('loading-message');
+        const errorMessage = document.getElementById('error-message');
         
         // Variables globales
         let currentUser = null;
         let userData = null;
+        let userDataLoaded = false; // Bandera para verificar si los datos del usuario están cargados
         
         // Verificar autenticación
         auth.onAuthStateChanged((user) => {
             if (!user) {
                 // Si no está autenticado, redirigir al login
-                window.location.href = 'login-registro.html';
+                window.location.href = 'Login-Registro.html';
             } else {
                 currentUser = user;
                 loadUserData();
-                loadRooms();
                 setupPresence();
             }
         });
@@ -255,15 +285,27 @@
                     if (userData) {
                         userNameElement.textContent = userData.username;
                         userAvatarElement.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.avatar}`;
+                        userDataLoaded = true;
+                        // Ahora que tenemos los datos del usuario, cargamos las salas
+                        loadRooms();
+                    } else {
+                        showError('No se pudieron cargar los datos del usuario');
                     }
                 })
                 .catch((error) => {
                     console.error("Error al cargar datos del usuario:", error);
+                    showError('Error al cargar datos del usuario: ' + error.message);
                 });
         }
         
         // Configurar sistema de presencia (conexión/desconexión)
         function setupPresence() {
+            if (!userDataLoaded) {
+                // Esperar a que los datos del usuario estén cargados
+                setTimeout(setupPresence, 100);
+                return;
+            }
+            
             const userStatusRef = database.ref('status/' + currentUser.uid);
             
             // Referencia a la conexión de Firebase
@@ -274,13 +316,17 @@
                     // Cuando nos conectamos, establecemos nuestro estado como online
                     userStatusRef.set({
                         online: true,
-                        lastChanged: firebase.database.ServerValue.TIMESTAMP
+                        lastChanged: firebase.database.ServerValue.TIMESTAMP,
+                        uid: currentUser.uid,
+                        username: userData?.username || 'Usuario'
                     });
                     
                     // Cuando nos desconectamos, eliminamos nuestro estado
                     userStatusRef.onDisconnect().set({
                         online: false,
-                        lastChanged: firebase.database.ServerValue.TIMESTAMP
+                        lastChanged: firebase.database.ServerValue.TIMESTAMP,
+                        uid: currentUser.uid,
+                        username: userData?.username || 'Usuario'
                     });
                 }
             });
@@ -288,9 +334,16 @@
         
         // Cargar salas disponibles
         function loadRooms() {
+            if (!userDataLoaded) {
+                // Esperar a que los datos del usuario estén cargados
+                setTimeout(loadRooms, 100);
+                return;
+            }
+            
             const roomsRef = database.ref('rooms');
             
             roomsRef.on('value', (snapshot) => {
+                loadingMessage.style.display = 'none';
                 roomsContainer.innerHTML = '';
                 const rooms = snapshot.val();
                 
@@ -301,9 +354,21 @@
                 
                 Object.keys(rooms).forEach(roomId => {
                     const room = rooms[roomId];
-                    const roomCard = createRoomCard(roomId, room);
-                    roomsContainer.appendChild(roomCard);
+                    // Solo mostrar salas que no están completas (menos de 2 jugadores)
+                    const playerCount = room.players ? Object.keys(room.players).length : 0;
+                    if (playerCount < 2) {
+                        const roomCard = createRoomCard(roomId, room);
+                        roomsContainer.appendChild(roomCard);
+                    }
                 });
+                
+                if (roomsContainer.innerHTML === '') {
+                    roomsContainer.innerHTML = '<p>No hay salas disponibles. ¡Crea una nueva!</p>';
+                }
+            }, (error) => {
+                console.error("Error al cargar salas:", error);
+                loadingMessage.style.display = 'none';
+                showError('Error al cargar las salas: ' + error.message);
             });
         }
         
@@ -321,7 +386,8 @@
             
             const playerCount = document.createElement('div');
             playerCount.className = 'player-count';
-            playerCount.textContent = `${Object.keys(room.players || {}).length}/2 jugadores`;
+            const players = room.players || {};
+            playerCount.textContent = `${Object.keys(players).length}/2 jugadores`;
             
             roomHeader.appendChild(roomName);
             roomHeader.appendChild(playerCount);
@@ -361,7 +427,6 @@
             if (playerCountValue >= 2) {
                 joinButton.disabled = true;
                 joinButton.textContent = 'Sala Llena';
-                joinButton.style.backgroundColor = '#666';
             } else {
                 joinButton.addEventListener('click', () => {
                     joinRoom(roomId);
@@ -383,6 +448,7 @@
             const avatar = document.createElement('img');
             avatar.className = 'player-avatar';
             avatar.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${player.avatar}`;
+            avatar.alt = player.username;
             
             const name = document.createElement('div');
             name.className = 'player-name';
@@ -401,58 +467,104 @@
         
         // Unirse a una sala
         function joinRoom(roomId) {
-            if (!userData) return;
+            if (!userDataLoaded) {
+                showError('Esperando a que se carguen los datos del usuario...');
+                return;
+            }
             
             const roomRef = database.ref('rooms/' + roomId + '/players/' + currentUser.uid);
             
-            roomRef.set({
-                username: userData.username,
-                avatar: userData.avatar,
-                online: true
-            }).then(() => {
-                // Redirigir a la sala de juego
-                window.location.href = `sala.html?roomId=${roomId}`;
-            }).catch((error) => {
-                console.error("Error al unirse a la sala:", error);
-            });
+            // Verificar si la sala todavía tiene espacio
+            database.ref('rooms/' + roomId).once('value')
+                .then((snapshot) => {
+                    const room = snapshot.val();
+                    const playerCount = room.players ? Object.keys(room.players).length : 0;
+                    
+                    if (playerCount >= 2) {
+                        showError('Esta sala ya está llena');
+                        loadRooms(); // Recargar salas para actualizar el estado
+                        return;
+                    }
+                    
+                    // Unirse a la sala
+                    return roomRef.set({
+                        username: userData.username,
+                        avatar: userData.avatar,
+                        online: true,
+                        joinedAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                })
+                .then(() => {
+                    // Redirigir a la sala de juego
+                    window.location.href = `sala.html?roomId=${roomId}`;
+                })
+                .catch((error) => {
+                    console.error("Error al unirse a la sala:", error);
+                    showError('Error al unirse a la sala: ' + error.message);
+                });
         }
         
         // Crear una nueva sala
         createRoomBtn.addEventListener('click', () => {
-            if (!userData) return;
+            if (!userDataLoaded) {
+                showError('Esperando a que se carguen los datos del usuario...');
+                return;
+            }
             
             const roomName = prompt("Nombre de la nueva sala:");
             if (!roomName) return;
+            
+            if (roomName.length < 3) {
+                alert("El nombre de la sala debe tener al menos 3 caracteres");
+                return;
+            }
             
             const newRoomRef = database.ref('rooms').push();
             
             newRoomRef.set({
                 name: roomName,
                 createdBy: currentUser.uid,
+                createdByUsername: userData.username,
                 createdAt: new Date().toISOString(),
                 players: {
                     [currentUser.uid]: {
                         username: userData.username,
                         avatar: userData.avatar,
-                        online: true
+                        online: true,
+                        joinedAt: firebase.database.ServerValue.TIMESTAMP
                     }
                 }
-            }).then(() => {
-                // Unirse a la sala recién creada
-                joinRoom(newRoomRef.key);
-            }).catch((error) => {
-                console.error("Error al crear la sala:", error);
+            })
+            .then(() => {
+                // Redirigir a la nueva sala
+                window.location.href = `sala.html?roomId=${newRoomRef.key}`;
+            })
+            .catch((error) => {
+                console.error("Error al crear sala:", error);
+                showError('Error al crear la sala: ' + error.message);
             });
         });
         
         // Cerrar sesión
         logoutBtn.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                window.location.href = 'login-registro.html';
-            }).catch((error) => {
-                console.error("Error al cerrar sesión:", error);
-            });
+            auth.signOut()
+                .then(() => {
+                    window.location.href = 'Login-Registro.html';
+                })
+                .catch((error) => {
+                    console.error("Error al cerrar sesión:", error);
+                    showError('Error al cerrar sesión: ' + error.message);
+                });
         });
+        
+        // Mostrar mensaje de error
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
     </script>
 </body>
 </html>
