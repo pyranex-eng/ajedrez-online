@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajedrez Online - Salas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #e94560;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .section-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .header-salas {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #e94560;
+        }
+
+        .logout-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background: #e94560;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #ff6b6b;
+            transform: translateY(-2px);
+        }
+
+        .rooms-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .room-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .room-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .room-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .room-players {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-bottom: 5px;
+        }
+
+        .player-name {
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .online-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 5px;
+        }
+
+        .online {
+            background-color: #4cd964;
+        }
+
+        .offline {
+            background-color: #ff3b30;
+        }
+
+        .join-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #553c8b;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .join-btn:hover {
+            background: #6a4ca3;
+        }
+
+        .join-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .create-room-btn {
+            margin-top: 30px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #e94560;
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            align-self: center;
+        }
+
+        .create-room-btn:hover {
+            background: #ff6b6b;
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            color: #78b9ff;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            text-align: center;
+            margin-top: 15px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="rooms-section" class="section-container">
+        <header class="header-salas">
+            <h1>Salas de Ajedrez</h1>
+            <div class="user-info">
+                <img id="user-avatar" class="user-avatar" src="" alt="Avatar">
+                <span id="user-name"></span>
+                <button class="logout-btn" id="logout-btn">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <main>
+            <h2>Salas disponibles</h2>
+            <div class="loading" id="loading-message">Cargando salas...</div>
+            <div class="error-message" id="error-message" style="display: none;"></div>
+            <div class="rooms-container" id="rooms-container">
+            </div>
+
+            <button class="create-room-btn" id="create-room-btn">Crear Nueva Sala</button>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAELxl8vQ3hea6OaD1pwZaoIDUrxY07vwg",
+            authDomain: "ajedrez-online-9da63.firebaseapp.com",
+            databaseURL: "https://ajedrez-online-9da63-default-rtdb.firebaseio.com",
+            projectId: "ajedrez-online-9da63",
+            storageBucket: "ajedrez-online-9da63.firebasestorage.app",
+            messagingSenderId: "841079328346",
+            appId: "1:841079328346:web:2a2f66f352ee8932ad9263",
+            measurementId: "G-ML6HGX08LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+        const serverTimestamp = firebase.database.ServerValue.TIMESTAMP;
+
+        const roomsContainer = document.getElementById('rooms-container');
+        const createRoomBtn = document.getElementById('create-room-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userNameElement = document.getElementById('user-name');
+        const userAvatarElement = document.getElementById('user-avatar');
+        const loadingMessage = document.getElementById('loading-message');
+        const errorMessage = document.getElementById('error-message');
+
+        let currentUser = null;
+        let userData = null;
+        let userDataLoaded = false;
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                loadUserData();
+            } else {
+                window.location.href = 'login-registro.html';
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                console.log("Usuario cerró sesión");
+            });
+        });
+
+        function loadUserData() {
+            const userRef = database.ref('users/' + currentUser.uid);
+            userRef.once('value').then((snapshot) => {
+                if (snapshot.exists()) {
+                    userData = snapshot.val();
+                    userNameElement.textContent = userData.username;
+                    userAvatarElement.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.avatar}`;
+                    userDataLoaded = true;
+                    setupPresence();
+                    loadRooms();
+                } else {
+                    showError('No se encontraron datos del usuario.');
+                    auth.signOut();
+                }
+            });
+        }
+
+        function setupPresence() {
+            if (!userDataLoaded) { setTimeout(setupPresence, 100); return; }
+            const userStatusRef = database.ref('status/' + currentUser.uid);
+            const connectedRef = database.ref('.info/connected');
+
+            connectedRef.on('value', (snap) => {
+                if (snap.val() === true) {
+                    userStatusRef.set({
+                        online: true,
+                        lastChanged: serverTimestamp,
+                        username: userData.username,
+                        avatar: userData.avatar
+                    });
+                    userStatusRef.onDisconnect().set({
+                        online: false,
+                        lastChanged: serverTimestamp
+                    });
+                }
+            });
+        }
+
+        function loadRooms() {
+            if (!userDataLoaded) { setTimeout(loadRooms, 100); return; }
+            loadingMessage.style.display = 'block';
+            const roomsRef = database.ref('rooms');
+            roomsRef.on('value', (snapshot) => {
+                loadingMessage.style.display = 'none';
+                roomsContainer.innerHTML = '';
+                const rooms = snapshot.val();
+                if (!rooms) {
+                    roomsContainer.innerHTML = '<p>No hay salas disponibles. ¡Crea una nueva!</p>';
+                    return;
+                }
+                Object.keys(rooms).forEach(roomId => {
+                    const room = rooms[roomId];
+                    const playerCount = room.players ? Object.keys(room.players).length : 0;
+                    if (playerCount < 2) {
+                        const roomCard = createRoomCard(roomId, room);
+                        roomsContainer.appendChild(roomCard);
+                    }
+                });
+                if (roomsContainer.innerHTML === '') {
+                    roomsContainer.innerHTML = '<p>No hay salas disponibles. ¡Crea una nueva!</p>';
+                }
+            });
+        }
+
+        function createRoomCard(roomId, room) {
+            const card = document.createElement('div');
+            card.className = 'room-card';
+            card.innerHTML = `
+                <div class="room-header">
+                    <div class="room-name">${room.name || 'Sala sin nombre'}</div>
+                    <div class="player-count">${Object.keys(room.players || {}).length}/2 jugadores</div>
+                </div>
+                <div class="room-players">
+                    ${Object.keys(room.players || {}).map(uid => `
+                        <div class="player">
+                            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=${room.players[uid].avatar}" class="player-avatar">
+                            <span class="player-name">${room.players[uid].username}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="join-btn" data-room-id="${roomId}">Unirse a la Sala</button>
+            `;
+            card.querySelector('.join-btn').addEventListener('click', () => joinRoom(roomId));
+            return card;
+        }
+
+        createRoomBtn.addEventListener('click', () => {
+            const newRoomRef = database.ref('rooms').push();
+            const newRoomId = newRoomRef.key;
+            newRoomRef.set({
+                name: `Sala de ${userData.username}`,
+                createdAt: serverTimestamp,
+                players: {
+                    [currentUser.uid]: {
+                        username: userData.username,
+                        avatar: userData.avatar,
+                        color: 'white'
+                    }
+                },
+                gameState: createInitialGameState(),
+                moveHistory: []
+            }).then(() => {
+                window.location.href = `ajedrez.html?room=${newRoomId}`;
+            }).catch(error => {
+                showError('Error al crear la sala: ' + error.message);
+            });
+        });
+
+        function joinRoom(roomId) {
+            const roomRef = database.ref('rooms/' + roomId);
+            roomRef.once('value').then(snapshot => {
+                const room = snapshot.val();
+                const players = room.players || {};
+                const playerCount = Object.keys(players).length;
+
+                if (playerCount < 2) {
+                    const player1UID = Object.keys(players)[0];
+                    if (player1UID !== currentUser.uid) {
+                        roomRef.child('players/' + currentUser.uid).set({
+                            username: userData.username,
+                            avatar: userData.avatar,
+                            color: 'black'
+                        }).then(() => {
+                            window.location.href = `ajedrez.html?room=${roomId}`;
+                        });
+                    } else {
+                        window.location.href = `ajedrez.html?room=${roomId}`;
+                    }
+                } else {
+                    showError('La sala está llena o ya no existe.');
+                }
+            }).catch(error => {
+                showError('Error al unirse a la sala: ' + error.message);
+            });
+        }
+        
+        function createInitialGameState() {
+            return [
+                ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+                ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+                ['', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', '', '', ''],
+                ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+                ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+            ];
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
