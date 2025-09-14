@@ -388,6 +388,98 @@
         const cancelCreateBtn = document.getElementById('cancel-create-room');
         const closeModalBtn = document.querySelector('.close-modal');
 
+       
+    // Función mejorada para renderizar salas
+    function renderRooms(roomsData) {
+        roomsList.innerHTML = '';
+        
+        if (!roomsData || Object.keys(roomsData).length === 0) {
+            roomsList.innerHTML = `
+                <li class="room-item">
+                    <div class="room-details">
+                        <h3>No hay salas disponibles</h3>
+                        <p>Crea una nueva sala para comenzar a jugar</p>
+                    </div>
+                </li>
+            `;
+            return;
+        }
+        
+        // Filtrar salas vacías y eliminarlas
+        Object.entries(roomsData).forEach(([roomId, roomData]) => {
+            if (!roomData.players || Object.keys(roomData.players).length === 0) {
+                database.ref('rooms/' + roomId).remove();
+                return;
+            }
+        });
+
+        Object.entries(roomsData).forEach(([key, value]) => {
+            if (!value.players) return;
+            
+            const players = value.players;
+            const playerKeys = Object.keys(players);
+            const playerCount = playerKeys.length;
+            const isFull = playerCount >= 2;
+            
+            const roomItem = document.createElement('li');
+            roomItem.className = 'room-item';
+
+            // Creación de los avatares de los jugadores
+            const playerAvatarsHtml = playerKeys.map(uid => {
+                const player = players[uid];
+                const avatarIcon = getAvatarIcon(player.avatar);
+                return `<div class="player-avatar-small"><i class="fas ${avatarIcon}"></i></div>`;
+            }).join('');
+
+            const emptySlots = 2 - playerCount;
+            const emptySlotsHtml = emptySlots > 0 ? 
+                Array(emptySlots).fill('<div class="player-avatar-small"><i class="fas fa-question"></i></div>').join('') : '';
+
+            roomItem.innerHTML = `
+                <div class="room-details">
+                    <h3>${value.name || 'Sala sin nombre'}</h3>
+                    <p>${playerCount} / 2 jugadores</p>
+                    <p>Creada: ${new Date(value.createdAt).toLocaleTimeString()}</p>
+                </div>
+                <div class="players-avatars">
+                    ${playerAvatarsHtml}
+                    ${emptySlotsHtml}
+                </div>
+                <div class="room-actions">
+                    <button onclick="joinRoom('${key}')" ${isFull ? 'disabled class="disabled-btn"' : ''}>
+                        ${isFull ? 'Llena' : 'Unirse'}
+                    </button>
+                </div>
+            `;
+            roomsList.appendChild(roomItem);
+        });
+    }
+
+    // Detectar desconexiones inesperadas
+    window.addEventListener('beforeunload', function() {
+        const user = auth.currentUser;
+        if (user) {
+            // Buscar y eliminar al usuario de todas las salas
+            roomsRef.once('value').then((snapshot) => {
+                const rooms = snapshot.val();
+                if (rooms) {
+                    Object.keys(rooms).forEach(roomId => {
+                        const room = rooms[roomId];
+                        if (room.players && room.players[user.uid]) {
+                            database.ref('rooms/' + roomId + '/players/' + user.uid).remove();
+                            
+                            // Verificar si la sala queda vacía para eliminarla
+                            const remainingPlayers = Object.keys(room.players).filter(uid => uid !== user.uid);
+                            if (remainingPlayers.length === 0) {
+                                database.ref('rooms/' + roomId).remove();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    });
+
         // Función para obtener el ícono de Font Awesome basado en el nombre del avatar
         function getAvatarIcon(avatarName) {
             const icons = {

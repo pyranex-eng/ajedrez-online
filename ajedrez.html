@@ -292,6 +292,46 @@
         let isWhiteTurn = true;
         let gameActive = true;
 
+    // Mejorar la función para abandonar la sala
+    leaveGameBtn.addEventListener('click', () => {
+        if (currentRoomId) {
+            const roomRef = database.ref('rooms/' + currentRoomId);
+            
+            // Primero eliminar al jugador
+            roomRef.child('players/' + currentUser.uid).remove().then(() => {
+                console.log("Jugador abandonó la sala.");
+                
+                // Verificar si la sala queda vacía
+                roomRef.once('value').then(snapshot => {
+                    const roomData = snapshot.val();
+                    if (!roomData || !roomData.players || Object.keys(roomData.players).length === 0) {
+                        roomRef.remove();
+                        console.log("Sala vacía, eliminada.");
+                    }
+                });
+            }).catch(error => {
+                console.error("Error al abandonar la sala:", error);
+            });
+        }
+        window.location.href = 'salas.html';
+    });
+
+    // Detectar cuando el usuario cierra la pestaña/navegador
+    window.addEventListener('beforeunload', function() {
+        if (currentRoomId && currentUser) {
+            const roomRef = database.ref('rooms/' + currentRoomId);
+            roomRef.child('players/' + currentUser.uid).remove();
+            
+            // Verificar si la sala queda vacía
+            roomRef.once('value').then(snapshot => {
+                const roomData = snapshot.val();
+                if (roomData && roomData.players && Object.keys(roomData.players).length === 0) {
+                    roomRef.remove();
+                }
+            });
+        }
+    });
+
         auth.onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
