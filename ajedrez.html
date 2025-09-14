@@ -187,11 +187,73 @@
         </div>
     </div>
 
+    <div class="info-panel">
+    <div class="players-display">
+        <div class="player-info white-player">
+            <span class="player-avatar-small" id="white-player-avatar"></span>
+            <span class="player-name" id="white-player-name"></span>
+        </div>
+        <span class="vs-text">vs</span>
+        <div class="player-info black-player">
+            <span class="player-name" id="black-player-name"></span>
+            <span class="player-avatar-small" id="black-player-avatar"></span>
+        </div>
+    </div>
+    <div class="status">
+        <h2>Estado: <span id="game-status">Esperando...</span></h2>
+        <p>Turno: <span id="current-turn"></span></p>
+        <p id="player-color-text"></p>
+    </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
+
+        function getAvatarIcon(avatarName) {
+        const icons = {
+            'avatar1': 'fa-chess-king',
+            'avatar2': 'fa-chess-queen',
+            'avatar3': 'fa-chess-knight',
+            'avatar4': 'fa-chess-bishop',
+            'avatar5': 'fa-chess-pawn'
+        };
+        return icons[avatarName] || 'fa-user';
+    }
+
+    function startRoomListener(roomId) {
+        const roomRef = database.ref('rooms/' + roomId);
+        roomRef.on('value', (snapshot) => {
+            const room = snapshot.val();
+            if (!room || Object.keys(room.players || {}).length === 0) {
+                console.log("La sala ha sido abandonada, saliendo...");
+                window.location.href = 'salas.html';
+                return;
+            }
+            
+            const players = room.players;
+            const playerUids = Object.keys(players);
+            
+            // Lógica para mostrar los jugadores
+            const player1 = players[playerUids[0]];
+            const player2 = playerUids.length === 2 ? players[playerUids[1]] : null;
+
+            if (playerUids.length === 2) {
+                gameInfoElement.textContent = `${player1.username} vs ${player2.username}`;
+                // Actualiza el panel de jugadores
+                document.getElementById('white-player-name').textContent = player1.username;
+                document.getElementById('white-player-avatar').innerHTML = `<i class="fas ${getAvatarIcon(player1.avatar)}"></i>`;
+                document.getElementById('black-player-name').textContent = player2.username;
+                document.getElementById('black-player-avatar').innerHTML = `<i class="fas ${getAvatarIcon(player2.avatar)}"></i>`;
+            } else {
+                gameInfoElement.textContent = `Esperando a otro jugador... (${playerUids.length}/2)`;
+            }
+            // ... (Resto de la función) ...
+        });
+    }
+
         const firebaseConfig = {
             apiKey: "AIzaSyAELxl8vQ3hea6OaD1pwZaoIDUrxY07vwg",
             authDomain: "ajedrez-online-9da63.firebaseapp.com",

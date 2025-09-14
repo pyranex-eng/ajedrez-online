@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ajedrez Online - Autenticación</title>
+    <!-- Agregar Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -41,186 +43,287 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 900px;
+            max-width: 1200px;
         }
 
-        .auth-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 30px;
-            width: 100%;
-        }
-
-        .auth-form {
-            flex: 1;
-            min-width: 300px;
-            max-width: 400px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+        .form-section {
+            background-color: #2b2b48;
             padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .form-title {
+        .form-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #e94560, #7289da);
+        }
+
+        .form-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
             text-align: center;
-            margin-bottom: 20px;
             color: #e94560;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .input-group {
-            margin-bottom: 20px;
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
+            color: #ccc;
             font-weight: 500;
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            z-index: 1;
         }
 
         input {
             width: 100%;
-            padding: 12px 15px;
-            border: none;
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
+            padding: 10px 10px 10px 40px;
+            border: 1px solid #555;
+            border-radius: 8px;
+            background-color: #333;
+            color: #fff;
             font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #7289da;
+            box-shadow: 0 0 0 2px rgba(114, 137, 218, 0.3);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            cursor: pointer;
+            z-index: 1;
         }
 
         button {
             width: 100%;
-            padding: 12px 15px;
+            padding: 12px;
             border: none;
-            border-radius: 5px;
-            background: #553c8b;
-            color: white;
+            border-radius: 8px;
+            background-color: #e94560;
+            color: #fff;
+            font-size: 1.1rem;
             font-weight: bold;
-            font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         button:hover {
-            background: #6a4ca3;
+            background-color: #ff6a80;
             transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
-        .avatar-selection {
-            margin: 20px 0;
-        }
-
-        .avatar-title {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .avatar-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-
-        .avatar-option {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 3px solid transparent;
-            transition: all 0.2s ease;
-        }
-
-        .avatar-option:hover {
-            transform: scale(1.1);
-        }
-
-        .avatar-option.selected {
-            border-color: #e94560;
+        button:active {
+            transform: translateY(0);
         }
 
         .error-message {
-            color: #ff6b6b;
+            color: #ff6a80;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+
+        .switch-link {
             text-align: center;
             margin-top: 15px;
-            min-height: 20px;
         }
 
-        .switch-form {
-            text-align: center;
-            margin-top: 20px;
+        .switch-link a {
+            color: #7289da;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
         }
 
-        .switch-form a {
-            color: #78b9ff;
-            cursor: pointer;
+        .switch-link a:hover {
             text-decoration: underline;
+            color: #8fa3eb;
         }
 
+        .avatar-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 8px;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            object-fit: cover;
+            background-color: #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #fff;
+        }
+
+        .avatar.selected {
+            border-color: #e94560;
+            transform: scale(1.1);
+            box-shadow: 0 0 12px rgba(233, 69, 96, 0.6);
+        }
+
+        .avatar i {
+            font-size: 1.8rem;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .form-section {
+                padding: 20px;
+            }
+            
+            .avatar {
+                width: 50px;
+                height: 50px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <header>
+        <h1><i class="fas fa-chess"></i> Ajedrez Online</h1>
+    </header>
 
-    <div id="auth-section" class="section-container active">
-        <header>
-            <h1>Ajedrez Online</h1>
-            <p>Inicia sesión o regístrate para jugar</p>
-        </header>
-
-        <div class="auth-container">
-            <div class="auth-form" id="login-form">
-                <h2 class="form-title">Iniciar Sesión</h2>
-                <div class="input-group">
-                    <label for="login-email">Correo electrónico</label>
-                    <input type="email" id="login-email" placeholder="Tu correo electrónico">
-                </div>
-                <div class="input-group">
-                    <label for="login-password">Contraseña</label>
-                    <input type="password" id="login-password" placeholder="Tu contraseña">
-                </div>
-                <button id="login-btn">Iniciar Sesión</button>
-                <div class="error-message" id="login-error"></div>
-                <div class="switch-form">
-                    <p>¿No tienes cuenta? <a id="show-register">Regístrate aquí</a></p>
+    <main class="section-container">
+        <section id="login-section" class="form-section">
+            <h2><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</h2>
+            <div class="form-group">
+                <label for="login-email">Correo Electrónico</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" id="login-email" placeholder="tu_correo@example.com" autocomplete="email">
                 </div>
             </div>
-
-            <div class="auth-form" id="register-form" style="display: none;">
-                <h2 class="form-title">Crear Cuenta</h2>
-                <div class="input-group">
-                    <label for="register-name">Nombre de usuario</label>
-                    <input type="text" id="register-name" placeholder="Elige un nombre de usuario">
-                </div>
-                <div class="input-group">
-                    <label for="register-email">Correo electrónico</label>
-                    <input type="email" id="register-email" placeholder="Tu correo electrónico">
-                </div>
-                <div class="input-group">
-                    <label for="register-password">Contraseña</label>
-                    <input type="password" id="register-password" placeholder="Crea una contraseña segura">
-                </div>
-                <div class="avatar-selection">
-                    <h3 class="avatar-title">Selecciona un avatar</h3>
-                    <div class="avatar-grid" id="avatar-grid">
-                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Max" class="avatar-option" data-avatar="Max">
-                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Bella" class="avatar-option" data-avatar="Bella">
-                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Simba" class="avatar-option" data-avatar="Simba">
-                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Milo" class="avatar-option" data-avatar="Milo">
-                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Zoe" class="avatar-option" data-avatar="Zoe">
-                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Jasper" class="avatar-option" data-avatar="Jasper">
-                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Luna" class="avatar-option" data-avatar="Luna">
-                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Oliver" class="avatar-option" data-avatar="Oliver">
-                    </div>
-                </div>
-                <button id="register-btn">Crear Cuenta</button>
-                <div class="error-message" id="register-error"></div>
-                <div class="switch-form">
-                    <p>¿Ya tienes cuenta? <a id="show-login">Inicia sesión aquí</a></p>
+            <div class="form-group">
+                <label for="login-password">Contraseña</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" id="login-password" placeholder="********" autocomplete="current-password">
+                    <i class="fas fa-eye password-toggle" id="login-password-toggle"></i>
                 </div>
             </div>
-        </div>
-    </div>
+            <p id="login-error" class="error-message"></p>
+            <button id="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+            </button>
+            <div class="switch-link">
+                ¿No tienes cuenta? <a href="#" id="show-register">Regístrate</a>
+            </div>
+        </section>
 
+        <section id="register-section" class="form-section" style="display: none;">
+            <h2><i class="fas fa-user-plus"></i> Registro</h2>
+            <div class="form-group">
+                <label for="register-name">Nombre de Usuario</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" id="register-name" placeholder="Juan Pérez" autocomplete="username">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="register-email">Correo Electrónico</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" id="register-email" placeholder="tu_correo@example.com" autocomplete="email">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="register-password">Contraseña</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" id="register-password" placeholder="********" autocomplete="new-password">
+                    <i class="fas fa-eye password-toggle" id="register-password-toggle"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Elige tu Avatar</label>
+                <div class="avatar-container" id="avatar-container">
+                    <div class="avatar" data-avatar="avatar1"><i class="fas fa-chess-king"></i></div>
+                    <div class="avatar" data-avatar="avatar2"><i class="fas fa-chess-queen"></i></div>
+                    <div class="avatar" data-avatar="avatar3"><i class="fas fa-chess-knight"></i></div>
+                    <div class="avatar" data-avatar="avatar4"><i class="fas fa-chess-bishop"></i></div>
+                    <div class="avatar" data-avatar="avatar5"><i class="fas fa-chess-pawn"></i></div>
+                </div>
+            </div>
+            <p id="register-error" class="error-message"></p>
+            <button id="register-btn">
+                <i class="fas fa-user-plus"></i> Registrarse
+            </button>
+            <div class="switch-link">
+                ¿Ya tienes cuenta? <a href="#" id="show-login">Inicia Sesión</a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Usamos la misma versión de Firebase que en los otros archivos (v8.10.1) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -236,47 +339,94 @@
             appId: "1:841079328346:web:2a2f66f352ee8932ad9263",
             measurementId: "G-ML6HGX08LE"
         };
+
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
-        const serverTimestamp = firebase.database.ServerValue.TIMESTAMP;
 
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
+        const loginSection = document.getElementById('login-section');
+        const registerSection = document.getElementById('register-section');
         const showRegisterBtn = document.getElementById('show-register');
         const showLoginBtn = document.getElementById('show-login');
-        const loginBtn = document.getElementById('login-btn');
+
         const registerBtn = document.getElementById('register-btn');
-        const avatarGrid = document.getElementById('avatar-grid');
-        let selectedAvatar = 'Max';
+        const loginBtn = document.getElementById('login-btn');
 
-        showRegisterBtn.addEventListener('click', () => {
-            loginForm.style.display = 'none';
-            registerForm.style.display = 'block';
-        });
+        const avatars = document.querySelectorAll('.avatar');
+        let selectedAvatar = '';
 
-        showLoginBtn.addEventListener('click', () => {
-            loginForm.style.display = 'block';
-            registerForm.style.display = 'none';
-        });
-
-        avatarGrid.addEventListener('click', (e) => {
-            if (e.target.classList.contains('avatar-option')) {
-                const currentSelected = document.querySelector('.avatar-option.selected');
-                if (currentSelected) {
-                    currentSelected.classList.remove('selected');
+        // Función para alternar visibilidad de contraseña
+        function setupPasswordToggle(passwordId, toggleId) {
+            const passwordInput = document.getElementById(passwordId);
+            const toggleIcon = document.getElementById(toggleId);
+            
+            toggleIcon.addEventListener('click', () => {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
                 }
-                e.target.classList.add('selected');
-                selectedAvatar = e.target.dataset.avatar;
-            }
+            });
+        }
+
+        // Configurar toggles de contraseña
+        setupPasswordToggle('login-password', 'login-password-toggle');
+        setupPasswordToggle('register-password', 'register-password-toggle');
+
+        // Permitir enviar formularios con Enter
+        function setupEnterSubmit(inputId, buttonId) {
+            const input = document.getElementById(inputId);
+            const button = document.getElementById(buttonId);
+            
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    button.click();
+                }
+            });
+        }
+
+        // Configurar envío con Enter
+        setupEnterSubmit('login-email', 'login-btn');
+        setupEnterSubmit('login-password', 'login-btn');
+        setupEnterSubmit('register-name', 'register-btn');
+        setupEnterSubmit('register-email', 'register-btn');
+        setupEnterSubmit('register-password', 'register-btn');
+
+        avatars.forEach(avatar => {
+            avatar.addEventListener('click', () => {
+                avatars.forEach(a => a.classList.remove('selected'));
+                avatar.classList.add('selected');
+                selectedAvatar = avatar.getAttribute('data-avatar');
+            });
         });
 
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // Si el usuario está autenticado, redirigir a salas.html
-                window.location.href = 'salas.html';
-            }
+        showRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginSection.style.display = 'none';
+            registerSection.style.display = 'block';
         });
+
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerSection.style.display = 'none';
+            loginSection.style.display = 'block';
+        });
+
+        function setButtonLoading(button, isLoading) {
+            const icon = button.querySelector('i');
+            if (isLoading) {
+                button.disabled = true;
+                icon.className = 'loading';
+                button.innerHTML = 'Procesando...';
+            } else {
+                button.disabled = false;
+                icon.className = button.id === 'login-btn' ? 'fas fa-sign-in-alt' : 'fas fa-user-plus';
+                button.innerHTML = button.id === 'login-btn' ? '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión' : '<i class="fas fa-user-plus"></i> Registrarse';
+            }
+        }
 
         registerBtn.addEventListener('click', () => {
             const name = document.getElementById('register-name').value;
@@ -284,27 +434,39 @@
             const password = document.getElementById('register-password').value;
             const registerError = document.getElementById('register-error');
 
-            if (!name || !email || !password) {
-                registerError.textContent = 'Por favor, completa todos los campos.';
+            if (!name || !email || !password || !selectedAvatar) {
+                registerError.textContent = 'Por favor, completa todos los campos y selecciona un avatar.';
                 return;
             }
 
-            registerError.textContent = 'Creando cuenta...';
+            registerError.textContent = '';
+            setButtonLoading(registerBtn, true);
+
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
-                    return database.ref('users/' + userCredential.user.uid).set({
+                    const user = userCredential.user;
+                    console.log("Usuario registrado con éxito:", user.uid);
+                    
+                    // Guardar datos del usuario en la base de datos
+                    return database.ref('users/' + user.uid).set({
                         username: name,
                         email: email,
                         avatar: selectedAvatar,
                         online: true,
-                        lastLogin: serverTimestamp
+                        lastLogin: Date.now()
                     });
                 })
                 .then(() => {
-                    console.log("Usuario registrado y datos guardados.");
+                    console.log("Datos del usuario guardados en la base de datos.");
+                    window.location.href = 'salas.html';
                 })
                 .catch((error) => {
                     registerError.textContent = error.message;
+                    console.error("Código de error de registro:", error.code);
+                    console.error("Mensaje de error de registro:", error.message);
+                })
+                .finally(() => {
+                    setButtonLoading(registerBtn, false);
                 });
         });
 
@@ -317,13 +479,23 @@
                 loginError.textContent = 'Por favor, completa todos los campos.';
                 return;
             }
-            loginError.textContent = 'Iniciando sesión...';
+
+            loginError.textContent = '';
+            setButtonLoading(loginBtn, true);
+
             auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
-                    console.log("Usuario ha iniciado sesión.");
+                    console.log("Usuario ha iniciado sesión correctamente.");
+                    window.location.href = 'salas.html';
                 })
                 .catch((error) => {
+                    // Muestra el mensaje de error específico de Firebase para depurar
                     loginError.textContent = error.message;
+                    console.error("Código de error de inicio de sesión:", error.code);
+                    console.error("Mensaje de error de inicio de sesión:", error.message);
+                })
+                .finally(() => {
+                    setButtonLoading(loginBtn, false);
                 });
         });
     </script>
