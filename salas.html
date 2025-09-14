@@ -263,7 +263,7 @@
         // Variables globales
         let currentUser = null;
         let userData = null;
-        let userDataLoaded = false; // Bandera para verificar si los datos del usuario están cargados
+        let userDataLoaded = false;
         
         // Verificar autenticación
         auth.onAuthStateChanged((user) => {
@@ -272,6 +272,7 @@
                 window.location.href = 'login-registro.html';
             } else {
                 currentUser = user;
+                console.log("Usuario autenticado:", user.uid);
                 loadUserData();
                 setupPresence();
             }
@@ -279,17 +280,24 @@
         
         // Cargar datos del usuario
         function loadUserData() {
-            database.ref('users/' + currentUser.uid).once('value')
+            console.log("Cargando datos del usuario...");
+            const userRef = database.ref('users/' + currentUser.uid);
+            
+            userRef.once('value')
                 .then((snapshot) => {
-                    userData = snapshot.val();
-                    if (userData) {
+                    if (snapshot.exists()) {
+                        userData = snapshot.val();
+                        console.log("Datos del usuario cargados:", userData);
+                        
                         userNameElement.textContent = userData.username;
                         userAvatarElement.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.avatar}`;
                         userDataLoaded = true;
+                        
                         // Ahora que tenemos los datos del usuario, cargamos las salas
                         loadRooms();
                     } else {
-                        showError('No se pudieron cargar los datos del usuario');
+                        console.error("No se encontraron datos del usuario en la base de datos");
+                        showError('No se encontraron datos de usuario. Por favor, contacta con soporte.');
                     }
                 })
                 .catch((error) => {
@@ -318,7 +326,7 @@
                         online: true,
                         lastChanged: firebase.database.ServerValue.TIMESTAMP,
                         uid: currentUser.uid,
-                        username: userData?.username || 'Usuario'
+                        username: userData.username
                     });
                     
                     // Cuando nos desconectamos, eliminamos nuestro estado
@@ -326,7 +334,7 @@
                         online: false,
                         lastChanged: firebase.database.ServerValue.TIMESTAMP,
                         uid: currentUser.uid,
-                        username: userData?.username || 'Usuario'
+                        username: userData.username
                     });
                 }
             });
@@ -340,6 +348,7 @@
                 return;
             }
             
+            console.log("Cargando salas...");
             const roomsRef = database.ref('rooms');
             
             roomsRef.on('value', (snapshot) => {
@@ -511,21 +520,15 @@
                 return;
             }
             
-            const roomName = prompt("Nombre de la nueva sala:");
+            const roomName = prompt('Nombre de la sala:');
             if (!roomName) return;
-            
-            if (roomName.length < 3) {
-                alert("El nombre de la sala debe tener al menos 3 caracteres");
-                return;
-            }
             
             const newRoomRef = database.ref('rooms').push();
             
             newRoomRef.set({
                 name: roomName,
                 createdBy: currentUser.uid,
-                createdByUsername: userData.username,
-                createdAt: new Date().toISOString(),
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
                 players: {
                     [currentUser.uid]: {
                         username: userData.username,
@@ -540,7 +543,7 @@
                 window.location.href = `sala.html?roomId=${newRoomRef.key}`;
             })
             .catch((error) => {
-                console.error("Error al crear sala:", error);
+                console.error("Error al crear la sala:", error);
                 showError('Error al crear la sala: ' + error.message);
             });
         });
@@ -549,6 +552,7 @@
         logoutBtn.addEventListener('click', () => {
             auth.signOut()
                 .then(() => {
+                    console.log("Usuario cerró sesión");
                     window.location.href = 'login-registro.html';
                 })
                 .catch((error) => {
