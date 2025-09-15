@@ -684,48 +684,66 @@
         }
 
         function renderBoard() {
-            chessBoard.innerHTML = '';
-            const boardToRender = (playerColor === 'black' ? gameState.slice().reverse() : gameState);
+    chessBoard.innerHTML = '';
+    
+    // Crea una copia del tablero para no modificar el original
+    let boardToRender = JSON.parse(JSON.stringify(gameState));
+
+    // Si el jugador es "black", invierte el tablero para su perspectiva
+    if (playerColor === 'black') {
+        boardToRender = boardToRender.reverse(); // Invierte el orden de las filas
+        boardToRender = boardToRender.map(row => row.reverse()); // Invierte el orden de las piezas en cada fila
+    }
+
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const square = document.createElement('div');
             
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
-                    const square = document.createElement('div');
-                    square.classList.add('square');
-                    square.classList.add((row + col) % 2 === 0 ? 'dark' : 'light');
-                    square.dataset.row = row;
-                    square.dataset.col = col;
+            // Lógica para determinar el color de la casilla
+            const isLight = (row + col) % 2 === 0;
+            square.classList.add('square', isLight ? 'light' : 'dark');
 
-                    if (row === 7) {
-                        const fileLabel = document.createElement('div');
-                        fileLabel.classList.add('file-label');
-                        fileLabel.textContent = String.fromCharCode(97 + col);
-                        square.appendChild(fileLabel);
-                    }
-                    if (col === 0) {
-                        const rankLabel = document.createElement('div');
-                        rankLabel.classList.add('rank-label');
-                        rankLabel.textContent = 8 - row;
-                        square.appendChild(rankLabel);
-                    }
-                    
-                    const effectiveRow = playerColor === 'black' ? 7 - row : row;
-                    const effectiveCol = playerColor === 'black' ? 7 - col : col;
-                    
-                    const piece = gameState[effectiveRow][effectiveCol];
-                    if (piece) {
-                        const pieceElement = document.createElement('div');
-                        pieceElement.classList.add('piece');
-                        pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
-                        pieceElement.textContent = pieceSymbols[piece];
-                        square.appendChild(pieceElement);
-                    }
-                    
-                    square.addEventListener('click', () => handleSquareClick(effectiveRow, effectiveCol));
+            // Agrega las coordenadas de la casilla como data-attributes
+            square.dataset.row = row;
+            square.dataset.col = col;
 
-                    chessBoard.appendChild(square);
-                }
+            // Agrega etiquetas de archivos y rangos para el primer y último jugador (opcional)
+            if (col === 0) {
+                const rankLabel = document.createElement('span');
+                rankLabel.classList.add('rank-label');
+                rankLabel.textContent = playerColor === 'black' ? (row + 1) : (8 - row);
+                square.appendChild(rankLabel);
             }
+
+            if (row === 7) {
+                const fileLabel = document.createElement('span');
+                fileLabel.classList.add('file-label');
+                const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+                fileLabel.textContent = playerColor === 'black' ? files[7 - col] : files[col];
+                square.appendChild(fileLabel);
+            }
+
+            // Coloca la pieza en la casilla si existe
+            const piece = boardToRender[row][col];
+            if (piece) {
+                const pieceElement = document.createElement('div');
+                pieceElement.classList.add('piece');
+                pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
+                pieceElement.textContent = pieceSymbols[piece];
+                square.appendChild(pieceElement);
+            }
+            
+            // Agrega el evento de clic a la casilla
+            square.addEventListener('click', () => {
+                const actualRow = playerColor === 'black' ? 7 - row : row;
+                const actualCol = playerColor === 'black' ? 7 - col : col;
+                handleSquareClick(actualRow, actualCol);
+            });
+
+            chessBoard.appendChild(square);
         }
+    }
+}
         
         function handleSquareClick(row, col) {
             if (isGameOver || gameInfo.turn !== playerColor) {
