@@ -687,14 +687,14 @@
         function renderBoard() {
     chessBoard.innerHTML = '';
     
-    // Validación crítica: asegurarse que gameState tiene la estructura correcta
     if (!gameState || gameState.length !== 8) {
-        console.error('gameState inválido:', gameState);
+        console.error('gameState inválido');
         return;
     }
     
     for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
+            const square = document.createElement('div');
             const actualRow = playerColor === 'black' ? 7 - row : row;
             const actualCol = playerColor === 'black' ? 7 - col : col;
             
@@ -703,15 +703,16 @@
                 console.error('Coordenadas inválidas:', actualRow, actualCol);
                 continue;
             }
-            
-            // Validar que la fila existe
+
+            // VALIDACIÓN CRÍTICA: Si la fila es undefined, saltarla
             if (!gameState[actualRow]) {
-                console.error('Fila undefined:', actualRow, 'en gameState:', gameState);
+                console.warn('Fila', actualRow, 'es undefined, omitiendo');
                 continue;
             }
             
+            
             const piece = gameState[actualRow][actualCol];
-if (piece && piece !== null && piece !== undefined) {
+if (piece && piece !== '') {
                 const pieceElement = document.createElement('div');
                 pieceElement.classList.add('piece');
                 pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
@@ -1048,7 +1049,7 @@ for (let i = 0; i < gameState.length; i++) {
 }
 console.log('PlayerColor:', playerColor);
 console.log('========================');
-                        
+
                         renderBoard();
                         renderGameStatus();
                         renderCapturedPieces(gameInfo);
