@@ -399,15 +399,15 @@
         };
 
         const initialGameState = [
-    ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
-    ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
-    ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
-];
+            ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+            ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+            ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+        ];
 
         const initialGameInfo = {
             turn: 'white',
@@ -692,50 +692,58 @@
         return;
     }
     
-    for (let visualRow = 0; visualRow < 8; visualRow++) {
-        for (let visualCol = 0; visualCol < 8; visualCol++) {
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
             const square = document.createElement('div');
-            square.classList.add('square');
-            square.classList.add((visualRow + visualCol) % 2 === 0 ? 'dark' : 'light');
-            square.dataset.row = visualRow;
-            square.dataset.col = visualCol;
-
-            // Determinar coordenadas reales del tablero según el color del jugador
-            const boardRow = playerColor === 'black' ? 7 - visualRow : visualRow;
-            const boardCol = playerColor === 'black' ? 7 - visualCol : visualCol;
             
-            // Agregar labels de coordenadas
-            if (visualRow === 7) {
+            // 1. AGREGAR CLASES CSS (FALTANTE)
+            square.classList.add('square');
+            square.classList.add((row + col) % 2 === 0 ? 'dark' : 'light');
+            square.dataset.row = row;
+            square.dataset.col = col;
+
+            // 2. AGREGAR LABELS DE COORDENADAS (FALTANTE)
+            // Para las labels de archivo (a-h)
+            if (row === 7) {
                 const fileLabel = document.createElement('div');
                 fileLabel.classList.add('file-label');
-                const fileChar = String.fromCharCode(97 + (playerColor === 'black' ? 7 - visualCol : visualCol));
+                // Si es negro, muestra las letras al revés
+                const fileChar = playerColor === 'black' ? 
+                    String.fromCharCode(97 + (7 - col)) : 
+                    String.fromCharCode(97 + col);
                 fileLabel.textContent = fileChar;
                 square.appendChild(fileLabel);
             }
 
-            if (visualCol === 0) {
+            // Para las labels de rango (1-8)
+            if (col === 0) {
                 const rankLabel = document.createElement('div');
                 rankLabel.classList.add('rank-label');
-                const rankNum = playerColor === 'black' ? visualRow + 1 : 8 - visualRow;
+                // Si es negro, muestra los números al revés
+                const rankNum = playerColor === 'black' ? 
+                    row + 1 : 
+                    8 - row;
                 rankLabel.textContent = rankNum;
                 square.appendChild(rankLabel);
             }
 
-            // Validar que la fila existe antes de acceder a ella
-            if (!gameState[boardRow]) {
-                console.error('Fila no definida:', boardRow);
+            const actualRow = playerColor === 'black' ? 7 - row : row;
+            const actualCol = col;
+            
+            // Validar que las coordenadas existen
+            if (actualRow < 0 || actualRow >= 8 || actualCol < 0 || actualCol >= 8) {
+                console.error('Coordenadas inválidas:', actualRow, actualCol);
                 continue;
             }
 
-            // Validar coordenadas
-            if (boardRow < 0 || boardRow >= 8 || boardCol < 0 || boardCol >= 8) {
-                console.error('Coordenadas inválidas:', boardRow, boardCol);
+            // VALIDACIÓN: Si la fila es undefined, saltarla
+            if (!gameState[actualRow]) {
+                console.warn('Fila', actualRow, 'es undefined, omitiendo');
                 continue;
             }
-
-            // Obtener la pieza en la posición real del tablero cadenas vacías "" en lugar de null suele ser más confiable.
-            const piece = gameState[boardRow][boardCol];
-            if (piece && piece !== "") {
+            
+            const piece = gameState[actualRow][actualCol];
+            if (piece && piece !== '') {
                 const pieceElement = document.createElement('div');
                 pieceElement.classList.add('piece');
                 pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
@@ -743,366 +751,129 @@
                 square.appendChild(pieceElement);
             }
             
-            // Agregar event listener con coordenadas reales del tablero
-            square.addEventListener('click', () => handleSquareClick(boardRow, boardCol));
+            square.addEventListener('click', () => handleSquareClick(actualRow, actualCol));
             chessBoard.appendChild(square);
-        }
-    }
-    
-    // Resaltar movimientos posibles si hay una pieza seleccionada
-    if (selectedPiece) {
-        highlightPossibleMoves();
-    }
-}
-
-function handleSquareClick(visualRow, visualCol) {
-    if (isGameOver || gameInfo.turn !== playerColor) {
-        console.log("No es tu turno o juego terminado");
-        return;
-    }
-
-    // Convertir coordenadas visuales a coordenadas del tablero
-    const boardRow = playerColor === 'black' ? 7 - visualRow : visualRow;
-    const boardCol = playerColor === 'black' ? 7 - visualCol : visualCol;
-    
-    const clickedPiece = gameState[boardRow][boardCol];
-    console.log("Click en:", "Visual:", visualRow, visualCol, "Tablero:", boardRow, boardCol, "Pieza:", clickedPiece);
-    
-    if (selectedPiece) {
-        console.log("Pieza ya seleccionada en:", selectedPiece.row, selectedPiece.col);
-        
-        // Convertir selectedPiece a coordenadas del tablero
-        const selectedBoardRow = playerColor === 'black' ? 7 - selectedPiece.row : selectedPiece.row;
-        const selectedBoardCol = playerColor === 'black' ? 7 - selectedPiece.col : selectedPiece.col;
-        
-        // Buscar si el movimiento es válido
-        const move = possibleMoves.find(m => {
-            // Convertir movimientos posibles a coordenadas visuales para comparar
-            const moveVisualRow = playerColor === 'black' ? 7 - m.row : m.row;
-            const moveVisualCol = playerColor === 'black' ? 7 - m.col : m.col;
-            return moveVisualRow === visualRow && moveVisualCol === visualCol;
-        });
-        
-        if (move) {
-            console.log("Movimiento válido encontrado");
-            const fromRow = selectedBoardRow;
-            const fromCol = selectedBoardCol;
-            const toRow = move.row;
-            const toCol = move.col;
-
-            makeMove(fromRow, fromCol, toRow, toCol, move);
-            
-            selectedPiece = null;
-            possibleMoves = [];
-        } else {
-            // Si se hace clic en otra pieza del mismo color, seleccionarla
-            if (clickedPiece && clickedPiece[0] === playerColor[0]) {
-                console.log("Seleccionando nueva pieza");
-                selectedPiece = { row: visualRow, col: visualCol }; // Guardar coordenadas visuales
-                possibleMoves = getPossibleMoves(boardRow, boardCol); // Pasar coordenadas del tablero
-                console.log("Nuevos movimientos posibles:", possibleMoves);
-                renderBoard();
-            } else {
-                console.log("Deseleccionando pieza");
-                selectedPiece = null;
-                possibleMoves = [];
-                renderBoard();
-            }
-        }
-    } else {
-        // Seleccionar una pieza si es del color del jugador
-        if (clickedPiece && clickedPiece[0] === playerColor[0]) {
-            console.log("Seleccionando pieza por primera vez");
-            selectedPiece = { row: visualRow, col: visualCol }; // Guardar coordenadas visuales
-            possibleMoves = getPossibleMoves(boardRow, boardCol); // Pasar coordenadas del tablero
-            console.log("Movimientos posibles:", possibleMoves);
-            renderBoard();
-        } else {
-            console.log("No es una pieza del jugador actual");
-        }
-    }
-}
-
-function makeMove(fromRow, fromCol, toRow, toCol, move) {
-    const updates = {};
-    const newGameState = JSON.parse(JSON.stringify(gameState));
-    let capturedPiece = null;
-    
-    // LÓGICA DE MOVIMIENTO Y CAPTURA
-    if (move.isCastling) {
-        // Enroque
-        if (move.isCastling === 'kingSide') {
-            newGameState[fromRow][fromCol+2] = newGameState[fromRow][fromCol];
-            newGameState[fromRow][fromCol] = null;
-            newGameState[fromRow][fromCol+1] = newGameState[fromRow][fromCol+3];
-            newGameState[fromRow][fromCol+3] = null;
-        } else if (move.isCastling === 'queenSide') {
-            newGameState[fromRow][fromCol-2] = newGameState[fromRow][fromCol];
-            newGameState[fromRow][fromCol] = null;
-            newGameState[fromRow][fromCol-1] = newGameState[fromRow][fromCol-4];
-            newGameState[fromRow][fromCol-4] = null;
-        }
-    } 
-    else if (move.isEnPassant) {
-        // Captura al paso
-        const capturedPawnRow = playerColor === 'white' ? toRow + 1 : toRow - 1;
-        capturedPiece = newGameState[capturedPawnRow][toCol];
-        newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
-        newGameState[fromRow][fromCol] = null;
-        newGameState[capturedPawnRow][toCol] = null;
-    }
-    else {
-        // Movimiento normal
-        capturedPiece = newGameState[toRow][toCol];
-        newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
-        newGameState[fromRow][fromCol] = null;
-    }
-
-    const pieceToMove = gameState[fromRow][fromCol];
-    
-    // Promoción de peón
-    if (pieceToMove && pieceToMove[1] === 'p' && (toRow === 0 || toRow === 7)) {
-        promotionPending = { fromRow, fromCol, toRow, toCol, capturedPiece };
-        showPromotionModal(playerColor);
-        return;
-    }
-    
-    // Update game info
-    const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
-    newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
-    newGameInfo.enPassantTarget = null;
-    
-    // Inicializar arrays de piezas capturadas
-    if (!newGameInfo.whiteCaptured) newGameInfo.whiteCaptured = [];
-    if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
-
-    // Actualizar derechos de enroque
-    if (pieceToMove === 'wk' || (pieceToMove === 'wr' && fromCol === 7)) { 
-        newGameInfo.canWhiteKingSideCastle = false; 
-    }
-    if (pieceToMove === 'wk' || (pieceToMove === 'wr' && fromCol === 0)) { 
-        newGameInfo.canWhiteQueenSideCastle = false; 
-    }
-    if (pieceToMove === 'bk' || (pieceToMove === 'br' && fromCol === 7)) { 
-        newGameInfo.canBlackKingSideCastle = false; 
-    }
-    if (pieceToMove === 'bk' || (pieceToMove === 'br' && fromCol === 0)) { 
-        newGameInfo.canBlackQueenSideCastle = false; 
-    }
-
-    // Establecer objetivo de captura al paso
-    if (pieceToMove[1] === 'p' && Math.abs(fromRow - toRow) === 2) {
-        newGameInfo.enPassantTarget = {row: (fromRow + toRow) / 2, col: toCol};
-    }
-    
-    // Registrar pieza capturada
-    if (capturedPiece) {
-        const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
-        newGameInfo[capturedPath].push(capturedPiece);
-    }
-
-    // Check for checkmate/stalemate
-    const nextPlayerColor = newGameInfo.turn;
-    const kingPos = findKing(newGameState, nextPlayerColor[0]);
-    if (kingPos) {
-        const opponentColor = nextPlayerColor === 'white' ? 'b' : 'w';
-        const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, opponentColor);
-        
-        const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
-        
-        if (kingInCheck && !hasLegalMoves) {
-            newGameInfo.checkmate = true;
-            newGameInfo.winner = playerColor;
-            newGameInfo.status = 'finished';
-        } else if (!kingInCheck && !hasLegalMoves) {
-            newGameInfo.stalemate = true;
-            newGameInfo.status = 'draw';
-        }
-    }
-    
-    updates['gameState'] = newGameState;
-    updates['gameInfo'] = newGameInfo;
-
-    roomRef.update(updates)
-        .then(() => {
-            console.log('Movimiento enviado a Firebase.');
-            renderCapturedPieces(newGameInfo);
-        })
-        .catch(error => {
-            console.error('Error al enviar el movimiento:', error);
-        });
-}
-
-function highlightPossibleMoves() {
-    for (let move of possibleMoves) {
-        // Convertir coordenadas del tablero a coordenadas visuales
-        const visualRow = playerColor === 'black' ? 7 - move.row : move.row;
-        const visualCol = playerColor === 'black' ? 7 - move.col : move.col;
-        
-        const square = document.querySelector(`.square[data-row='${visualRow}'][data-col='${visualCol}']`);
-        if (square) {
-            square.classList.add('possible-move');
         }
     }
 }
         
         function handleSquareClick(row, col) {
-    if (isGameOver || gameInfo.turn !== playerColor) {
-        return;
-    }
-
-    // Convertir coordenadas visuales a coordenadas del tablero
-    const boardRow = playerColor === 'black' ? 7 - row : row;
-    const boardCol = playerColor === 'black' ? 7 - col : col;
-    
-    const clickedPiece = gameState[boardRow][boardCol];
-    
-    if (selectedPiece) {
-        // Convertir selectedPiece a coordenadas del tablero si es necesario
-        const selectedBoardRow = playerColor === 'black' ? 7 - selectedPiece.row : selectedPiece.row;
-        const selectedBoardCol = playerColor === 'black' ? 7 - selectedPiece.col : selectedPiece.col;
-        
-        const move = possibleMoves.find(m => {
-            // Convertir movimientos posibles a coordenadas visuales para comparar
-            const moveVisualRow = playerColor === 'black' ? 7 - m.row : m.row;
-            const moveVisualCol = playerColor === 'black' ? 7 - m.col : m.col;
-            return moveVisualRow === row && moveVisualCol === col;
-        });
-        
-        if (move) {
-            const fromRow = selectedBoardRow; // Usar coordenadas del tablero
-            const fromCol = selectedBoardCol;
-            const toRow = move.row; // move ya está en coordenadas del tablero
-            const toCol = move.col;
-
-            const updates = {};
-            const newGameState = JSON.parse(JSON.stringify(gameState));
-            let capturedPiece = null;
-            
-            // LÓGICA DE MOVIMIENTO Y CAPTURA
-            if (move.isCastling) {
-                // Enroque
-                if (move.isCastling === 'kingSide') {
-                    newGameState[fromRow][fromCol+2] = newGameState[fromRow][fromCol];
-                    newGameState[fromRow][fromCol] = null;
-                    newGameState[fromRow][fromCol+1] = newGameState[fromRow][fromCol+3];
-                    newGameState[fromRow][fromCol+3] = null;
-                } else if (move.isCastling === 'queenSide') {
-                    newGameState[fromRow][fromCol-2] = newGameState[fromRow][fromCol];
-                    newGameState[fromRow][fromCol] = null;
-                    newGameState[fromRow][fromCol-1] = newGameState[fromRow][fromCol-4];
-                    newGameState[fromRow][fromCol-4] = null;
-                }
-            } 
-            else if (move.isEnPassant) {
-                // Captura al paso
-                const capturedPawnRow = playerColor === 'white' ? toRow + 1 : toRow - 1;
-                capturedPiece = newGameState[capturedPawnRow][toCol];
-                newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
-                newGameState[fromRow][fromCol] = null;
-                newGameState[capturedPawnRow][toCol] = null;
-            }
-            else {
-                // Movimiento normal
-                capturedPiece = newGameState[toRow][toCol];
-                newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
-                newGameState[fromRow][fromCol] = null;
-            }
-
-            const pieceToMove = gameState[fromRow][fromCol];
-            if (pieceToMove && pieceToMove[1] === 'p' && (toRow === 0 || toRow === 7)) {
-                promotionPending = { fromRow, fromCol, toRow, toCol, capturedPiece };
-                showPromotionModal(playerColor);
+            if (isGameOver || gameInfo.turn !== playerColor) {
                 return;
             }
-            
-            // Update game info
-            const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
-            newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
-            newGameInfo.enPassantTarget = null;
-            
-            // Inicializar arrays de piezas capturadas
-            if (!newGameInfo.whiteCaptured) newGameInfo.whiteCaptured = [];
-            if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
 
-            // Actualizar derechos de enroque
-            if (pieceToMove === 'wk' || (pieceToMove === 'wr' && fromCol === 7)) { 
-                newGameInfo.canWhiteKingSideCastle = false; 
-            }
-            if (pieceToMove === 'wk' || (pieceToMove === 'wr' && fromCol === 0)) { 
-                newGameInfo.canWhiteQueenSideCastle = false; 
-            }
-            if (pieceToMove === 'bk' || (pieceToMove === 'br' && fromCol === 7)) { 
-                newGameInfo.canBlackKingSideCastle = false; 
-            }
-            if (pieceToMove === 'bk' || (pieceToMove === 'br' && fromCol === 0)) { 
-                newGameInfo.canBlackQueenSideCastle = false; 
-            }
-
-            // Establecer objetivo de captura al paso
-            if (pieceToMove[1] === 'p' && Math.abs(fromRow - toRow) === 2) {
-                newGameInfo.enPassantTarget = {row: (fromRow + toRow) / 2, col: toCol};
-            }
+            const clickedPiece = gameState[row][col];
             
-            // Registrar pieza capturada
-            if (capturedPiece) {
-                const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
-                newGameInfo[capturedPath].push(capturedPiece);
-            }
+            if (selectedPiece) {
+                const move = possibleMoves.find(m => m.row === row && m.col === col);
+                if (move) {
+                    const fromRow = selectedPiece.row;
+                    const fromCol = selectedPiece.col;
+                    const toRow = move.row;
+                    const toCol = move.col;
 
-            // Check for checkmate/stalemate
-            const nextPlayerColor = newGameInfo.turn;
-            const kingPos = findKing(newGameState, nextPlayerColor[0]);
-            if (kingPos) {
-                const opponentColor = nextPlayerColor === 'white' ? 'b' : 'w';
-                const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, opponentColor);
-                
-                const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
-                
-                if (kingInCheck && !hasLegalMoves) {
-                    newGameInfo.checkmate = true;
-                    newGameInfo.winner = playerColor;
-                    newGameInfo.status = 'finished';
-                } else if (!kingInCheck && !hasLegalMoves) {
-                    newGameInfo.stalemate = true;
-                    newGameInfo.status = 'draw';
+                    const updates = {};
+                    const newGameState = JSON.parse(JSON.stringify(gameState));
+                    let capturedPiece = null;
+                    
+                    if (move.isCastling) {
+                        if (move.isCastling === 'kingSide') {
+                            newGameState[fromRow][fromCol+2] = newGameState[fromRow][fromCol];
+                            newGameState[fromRow][fromCol] = null;
+                            newGameState[fromRow][fromCol+1] = newGameState[fromRow][fromCol+3];
+                            newGameState[fromRow][fromCol+3] = null;
+                        } else if (move.isCastling === 'queenSide') {
+                            newGameState[fromRow][fromCol-2] = newGameState[fromRow][fromCol];
+                            newGameState[fromRow][fromCol] = null;
+                            newGameState[fromRow][fromCol-1] = newGameState[fromRow][fromCol-4];
+                            newGameState[fromRow][fromCol-4] = null;
+                        }
+                    } else {
+                        capturedPiece = newGameState[toRow][toCol];
+                        newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
+                        newGameState[fromRow][fromCol] = null;
+
+                        if (move.isEnPassant) {
+                            const capturedPawnRow = playerColor === 'white' ? toRow + 1 : toRow - 1;
+                            capturedPiece = newGameState[capturedPawnRow][toCol];
+                            newGameState[capturedPawnRow][toCol] = null;
+                        }
+                    }
+
+                    const pieceToMove = gameState[fromRow][fromCol];
+                    if (pieceToMove[1] === 'p' && (toRow === 0 || toRow === 7)) {
+                        promotionPending = { fromRow, fromCol, toRow, toCol, capturedPiece };
+                        showPromotionModal(playerColor);
+                        return;
+                    }
+                    
+                    // Update game info and state
+                    const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
+                    newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
+                    newGameInfo.enPassantTarget = null;
+
+                    if (pieceToMove === 'wk' || pieceToMove === 'wr' && fromCol === 7) { newGameInfo.canWhiteKingSideCastle = false; }
+                    if (pieceToMove === 'wk' || pieceToMove === 'wr' && fromCol === 0) { newGameInfo.canWhiteQueenSideCastle = false; }
+                    if (pieceToMove === 'bk' || pieceToMove === 'br' && fromCol === 7) { newGameInfo.canBlackKingSideCastle = false; }
+                    if (pieceToMove === 'bk' || pieceToMove === 'br' && fromCol === 0) { newGameInfo.canBlackQueenSideCastle = false; }
+
+                    if (pieceToMove[1] === 'p' && Math.abs(fromRow - toRow) === 2) {
+                        newGameInfo.enPassantTarget = {row: (fromRow + toRow) / 2, col: toCol};
+                    }
+                    
+                    if (capturedPiece) {
+                        const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
+                        newGameInfo[capturedPath].push(capturedPiece);
+                    }
+
+                    // Check for checkmate/stalemate
+                    const nextPlayerColor = newGameInfo.turn;
+                    const kingInCheck = isSquareAttacked(findKing(newGameState, nextPlayerColor[0]).row, findKing(newGameState, nextPlayerColor[0]).col, newGameState, playerColor[0]);
+                    
+                    const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
+                    
+                    if (kingInCheck && !hasLegalMoves) {
+                        newGameInfo.checkmate = true;
+                        newGameInfo.winner = playerColor;
+                        newGameInfo.status = 'finished';
+                    } else if (!kingInCheck && !hasLegalMoves) {
+                        newGameInfo.stalemate = true;
+                        newGameInfo.status = 'draw';
+                    }
+                    
+                    updates['gameState'] = newGameState;
+                    updates['gameInfo'] = newGameInfo;
+
+                    roomRef.update(updates)
+                        .then(() => {
+                            console.log('Movimiento enviado a Firebase.');
+                        })
+                        .catch(error => {
+                            console.error('Error al enviar el movimiento:', error);
+                        });
+                        
+                    selectedPiece = null;
+                    possibleMoves = [];
+                } else {
+                    selectedPiece = null;
+                    possibleMoves = [];
+                    renderBoard();
+                    if (clickedPiece && clickedPiece[0] === playerColor[0]) {
+                        selectedPiece = { row, col };
+                        possibleMoves = getPossibleMoves(row, col);
+                        renderBoard();
+                        highlightPossibleMoves();
+                    }
+                }
+            } else {
+                if (clickedPiece && clickedPiece[0] === playerColor[0]) {
+                    selectedPiece = { row, col };
+                    possibleMoves = getPossibleMoves(row, col);
+                    renderBoard();
+                    highlightPossibleMoves();
                 }
             }
-            
-            updates['gameState'] = newGameState;
-            updates['gameInfo'] = newGameInfo;
-
-            roomRef.update(updates)
-                .then(() => {
-                    console.log('Movimiento enviado a Firebase.');
-                    renderCapturedPieces(newGameInfo);
-                })
-                .catch(error => {
-                    console.error('Error al enviar el movimiento:', error);
-                });
-                
-            selectedPiece = null;
-            possibleMoves = [];
-        } else {
-            selectedPiece = null;
-            possibleMoves = [];
-            renderBoard();
-            if (clickedPiece && clickedPiece[0] === playerColor[0]) {
-                selectedPiece = { row, col }; // Guardar coordenadas visuales
-                possibleMoves = getPossibleMoves(boardRow, boardCol); // Pasar coordenadas del tablero
-                renderBoard();
-                highlightPossibleMoves();
-            }
         }
-    } else {
-        if (clickedPiece && clickedPiece[0] === playerColor[0]) {
-            selectedPiece = { row, col }; // Guardar coordenadas visuales
-            possibleMoves = getPossibleMoves(boardRow, boardCol); // Pasar coordenadas del tablero
-            renderBoard();
-            highlightPossibleMoves();
-        }
-    }
-}
         
         function getLegalMovesForPlayer(board, color) {
             const allLegalMoves = [];
@@ -1120,8 +891,9 @@ function highlightPossibleMoves() {
 
         function highlightPossibleMoves() {
     for (let move of possibleMoves) {
+        // Solo invertir las filas para el jugador negro, mantener columnas igual
         const effectiveRow = playerColor === 'black' ? 7 - move.row : move.row;
-        const effectiveCol = playerColor === 'black' ? 7 - move.col : move.col; // Invertir columnas también
+        const effectiveCol = move.col; // No invertir columnas
         const square = document.querySelector(`.square[data-row='${effectiveRow}'][data-col='${effectiveCol}']`);
         if (square) {
             square.classList.add('possible-move');
@@ -1143,41 +915,37 @@ function highlightPossibleMoves() {
         }
 
         function selectPromotion(pieceType) {
-    if (!promotionPending) return;
-    const { fromRow, fromCol, toRow, toCol, capturedPiece } = promotionPending;
+            if (!promotionPending) return;
+            const { fromRow, fromCol, toRow, toCol, capturedPiece } = promotionPending;
 
-    const newGameState = JSON.parse(JSON.stringify(gameState));
-    newGameState[fromRow][fromCol] = null;
-    newGameState[toRow][toCol] = pieceType;
-    
-    const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
-    newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
-    
-    // Inicializar arrays si no existen
-    if (!newGameInfo.whiteCaptured) newGameInfo.whiteCaptured = [];
-    if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
-    
-    if (capturedPiece) {
-        const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
-        newGameInfo[capturedPath].push(capturedPiece);
-    }
+            const newGameState = JSON.parse(JSON.stringify(gameState));
+            newGameState[fromRow][fromCol] = null;
+            newGameState[toRow][toCol] = pieceType;
+            
+            const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
+            newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
+            
+            if (capturedPiece) {
+                const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
+                newGameInfo[capturedPath].push(capturedPiece);
+            }
 
-    const updates = {
-        gameState: newGameState,
-        gameInfo: newGameInfo
-    };
+            const updates = {
+                gameState: newGameState,
+                gameInfo: newGameInfo
+            };
 
-    roomRef.update(updates)
-        .then(() => {
-            console.log('Promoción enviada a Firebase.');
-        })
-        .catch(error => {
-            console.error('Error al enviar la promoción:', error);
-        });
+            roomRef.update(updates)
+                .then(() => {
+                    console.log('Promoción enviada a Firebase.');
+                })
+                .catch(error => {
+                    console.error('Error al enviar la promoción:', error);
+                });
 
-    promotionModal.style.display = 'none';
-    promotionPending = null;
-}
+            promotionModal.style.display = 'none';
+            promotionPending = null;
+        }
 
         function renderPlayers(players, users) {
             const whitePlayer = players.white;
@@ -1314,8 +1082,8 @@ console.log('PlayerColor:', playerColor);
 console.log('========================');
 
                         renderBoard();
-                        renderCapturedPieces(gameInfo);
                         renderGameStatus();
+                        renderCapturedPieces(gameInfo);
                         
                         roomNameDisplay.textContent = `Sala: ${roomData.name}`;
 
@@ -1346,56 +1114,8 @@ console.log('========================');
         blackCapturedList.innerHTML = '';
         return;
     }
-    
-    // Limpiar las listas
-    whiteCapturedList.innerHTML = '';
-    blackCapturedList.innerHTML = '';
-    
-    // Contar piezas capturadas por tipo y color
-    const whiteCapturedCount = {};
-    const blackCapturedCount = {};
-    
-    // Verificar que whiteCaptured existe y es un array
-    if (gameInfo.whiteCaptured && Array.isArray(gameInfo.whiteCaptured)) {
-        gameInfo.whiteCaptured.forEach(piece => {
-            const color = piece[0] === 'w' ? 'white' : 'black';
-            const type = piece[1];
-            if (color === 'black') { // Las blancas capturaron piezas negras
-                blackCapturedCount[type] = (blackCapturedCount[type] || 0) + 1;
-            }
-        });
-    }
-    
-    // Verificar que blackCaptured existe y es un array
-    if (gameInfo.blackCaptured && Array.isArray(gameInfo.blackCaptured)) {
-        gameInfo.blackCaptured.forEach(piece => {
-            const color = piece[0] === 'w' ? 'white' : 'black';
-            const type = piece[1];
-            if (color === 'white') { // Las negras capturaron piezas blancas
-                whiteCapturedCount[type] = (whiteCapturedCount[type] || 0) + 1;
-            }
-        });
-    }
-    
-    // Renderizar piezas capturadas por blancas (piezas negras)
-    for (const [type, count] of Object.entries(blackCapturedCount)) {
-        for (let i = 0; i < count; i++) {
-            const pieceElement = document.createElement('span');
-            pieceElement.classList.add('captured-piece', 'black');
-            pieceElement.textContent = pieceSymbols['b' + type];
-            whiteCapturedList.appendChild(pieceElement);
-        }
-    }
-    
-    // Renderizar piezas capturadas por negras (piezas blancas)
-    for (const [type, count] of Object.entries(whiteCapturedCount)) {
-        for (let i = 0; i < count; i++) {
-            const pieceElement = document.createElement('span');
-            pieceElement.classList.add('captured-piece', 'white');
-            pieceElement.textContent = pieceSymbols['w' + type];
-            blackCapturedList.appendChild(pieceElement);
-        }
-    }
+    whiteCapturedList.innerHTML = gameInfo.whiteCaptured.map(p => `<span class="captured-piece black">${pieceSymbols[p]}</span>`).join('');
+    blackCapturedList.innerHTML = gameInfo.blackCaptured.map(p => `<span class="captured-piece white">${pieceSymbols[p]}</span>`).join('');
 }
 
         leaveBtn.addEventListener('click', () => {
