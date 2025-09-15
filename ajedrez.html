@@ -755,31 +755,42 @@
     }
 }
 
-function handleSquareClick(boardRow, boardCol) {
-    console.log("Click en:", boardRow, boardCol, "Player:", playerColor);
-    
+function handleSquareClick(visualRow, visualCol) {
     if (isGameOver || gameInfo.turn !== playerColor) {
         console.log("No es tu turno o juego terminado");
         return;
     }
 
+    // Convertir coordenadas visuales a coordenadas del tablero
+    const boardRow = playerColor === 'black' ? 7 - visualRow : visualRow;
+    const boardCol = playerColor === 'black' ? 7 - visualCol : visualCol;
+    
     const clickedPiece = gameState[boardRow][boardCol];
-    console.log("Pieza clickeada:", clickedPiece);
+    console.log("Click en:", "Visual:", visualRow, visualCol, "Tablero:", boardRow, boardCol, "Pieza:", clickedPiece);
     
     if (selectedPiece) {
         console.log("Pieza ya seleccionada en:", selectedPiece.row, selectedPiece.col);
-        console.log("Movimientos posibles:", possibleMoves);
+        
+        // Convertir selectedPiece a coordenadas del tablero
+        const selectedBoardRow = playerColor === 'black' ? 7 - selectedPiece.row : selectedPiece.row;
+        const selectedBoardCol = playerColor === 'black' ? 7 - selectedPiece.col : selectedPiece.col;
         
         // Buscar si el movimiento es válido
-        const move = possibleMoves.find(m => m.row === boardRow && m.col === boardCol);
+        const move = possibleMoves.find(m => {
+            // Convertir movimientos posibles a coordenadas visuales para comparar
+            const moveVisualRow = playerColor === 'black' ? 7 - m.row : m.row;
+            const moveVisualCol = playerColor === 'black' ? 7 - m.col : m.col;
+            return moveVisualRow === visualRow && moveVisualCol === visualCol;
+        });
         
         if (move) {
             console.log("Movimiento válido encontrado");
-            const fromRow = selectedPiece.row;
-            const fromCol = selectedPiece.col;
-            
-            // Realizar el movimiento
-            makeMove(fromRow, fromCol, boardRow, boardCol, move);
+            const fromRow = selectedBoardRow;
+            const fromCol = selectedBoardCol;
+            const toRow = move.row;
+            const toCol = move.col;
+
+            makeMove(fromRow, fromCol, toRow, toCol, move);
             
             selectedPiece = null;
             possibleMoves = [];
@@ -787,8 +798,8 @@ function handleSquareClick(boardRow, boardCol) {
             // Si se hace clic en otra pieza del mismo color, seleccionarla
             if (clickedPiece && clickedPiece[0] === playerColor[0]) {
                 console.log("Seleccionando nueva pieza");
-                selectedPiece = { row: boardRow, col: boardCol };
-                possibleMoves = getPossibleMoves(boardRow, boardCol);
+                selectedPiece = { row: visualRow, col: visualCol }; // Guardar coordenadas visuales
+                possibleMoves = getPossibleMoves(boardRow, boardCol); // Pasar coordenadas del tablero
                 console.log("Nuevos movimientos posibles:", possibleMoves);
                 renderBoard();
             } else {
@@ -802,8 +813,8 @@ function handleSquareClick(boardRow, boardCol) {
         // Seleccionar una pieza si es del color del jugador
         if (clickedPiece && clickedPiece[0] === playerColor[0]) {
             console.log("Seleccionando pieza por primera vez");
-            selectedPiece = { row: boardRow, col: boardCol };
-            possibleMoves = getPossibleMoves(boardRow, boardCol);
+            selectedPiece = { row: visualRow, col: visualCol }; // Guardar coordenadas visuales
+            possibleMoves = getPossibleMoves(boardRow, boardCol); // Pasar coordenadas del tablero
             console.log("Movimientos posibles:", possibleMoves);
             renderBoard();
         } else {
