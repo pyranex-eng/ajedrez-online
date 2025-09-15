@@ -711,7 +711,7 @@
                     const effectiveRow = playerColor === 'black' ? 7 - row : row;
                     const effectiveCol = playerColor === 'black' ? 7 - col : col;
                     
-                     const piece = boardToRender[row][col];
+                     const piece = gameState[actualRow][actualCol];
                     if (piece) {
                         const pieceElement = document.createElement('div');
                         pieceElement.classList.add('piece');
