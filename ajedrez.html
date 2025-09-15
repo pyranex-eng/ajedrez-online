@@ -721,6 +721,12 @@
                 square.appendChild(rankLabel);
             }
 
+            // Validar que la fila existe antes de acceder a ella
+            if (!gameState[boardRow]) {
+                console.error('Fila no definida:', boardRow);
+                continue;
+            }
+
             // Validar coordenadas
             if (boardRow < 0 || boardRow >= 8 || boardCol < 0 || boardCol >= 8) {
                 console.error('Coordenadas inválidas:', boardRow, boardCol);
