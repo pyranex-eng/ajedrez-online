@@ -832,19 +832,23 @@ if (type === 'n') {
 }
 
                     // Check for checkmate/stalemate
-                    const nextPlayerColor = newGameInfo.turn;
-                    const kingInCheck = isSquareAttacked(findKing(newGameState, nextPlayerColor[0]).row, findKing(newGameState, nextPlayerColor[0]).col, newGameState, playerColor[0]);
-                    
-                    const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
-                    
-                    if (kingInCheck && !hasLegalMoves) {
-                        newGameInfo.checkmate = true;
-                        newGameInfo.winner = playerColor;
-                        newGameInfo.status = 'finished';
-                    } else if (!kingInCheck && !hasLegalMoves) {
-                        newGameInfo.stalemate = true;
-                        newGameInfo.status = 'draw';
-                    }
+const nextPlayerColor = newGameInfo.turn;
+const kingPos = findKing(newGameState, nextPlayerColor[0]);
+const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, playerColor[0]);
+
+const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
+
+// Actualizar estado de jaque
+newGameInfo.check = kingInCheck;
+
+if (kingInCheck && !hasLegalMoves) {
+    newGameInfo.checkmate = true;
+    newGameInfo.winner = playerColor;
+    newGameInfo.status = 'finished';
+} else if (!kingInCheck && !hasLegalMoves) {
+    newGameInfo.stalemate = true;
+    newGameInfo.status = 'draw';
+}
                     
                     updates['gameState'] = newGameState;
                     updates['gameInfo'] = newGameInfo;
@@ -980,28 +984,36 @@ if (type === 'n') {
         }
 
         function renderGameStatus() {
-            if (gameInfo.status === 'finished') {
-                isGameOver = true;
-                gameStatusDisplay.style.display = 'block';
-                turnIndicator.style.display = 'none';
-                offerDrawBtn.disabled = true;
-                resignBtn.disabled = true;
+    if (gameInfo.status === 'finished') {
+        isGameOver = true;
+        gameStatusDisplay.style.display = 'block';
+        turnIndicator.style.display = 'none';
+        offerDrawBtn.disabled = true;
+        resignBtn.disabled = true;
 
-                if (gameInfo.checkmate) {
-                    gameStatusDisplay.textContent = `¡Jaque Mate! Ganan las ${gameInfo.winner === 'white' ? 'Blancas' : 'Negras'}.`;
-                } else if (gameInfo.stalemate) {
-                    gameStatusDisplay.textContent = '¡Ahogado! El juego es un empate.';
-                } else if (gameInfo.winner) {
-                     gameStatusDisplay.textContent = `Ganan las ${gameInfo.winner === 'white' ? 'Blancas' : 'Negras'} por rendición.`;
-                }
-            } else {
-                gameStatusDisplay.style.display = 'none';
-                turnIndicator.style.display = 'block';
-                currentTurnDisplay.textContent = gameInfo.turn === 'white' ? 'Blancas' : 'Negras';
-                offerDrawBtn.disabled = false;
-                resignBtn.disabled = false;
-            }
+        if (gameInfo.checkmate) {
+            gameStatusDisplay.textContent = `¡Jaque Mate! Ganan las ${gameInfo.winner === 'white' ? 'Blancas' : 'Negras'}.`;
+        } else if (gameInfo.stalemate) {
+            gameStatusDisplay.textContent = '¡Ahogado! El juego es un empate.';
+        } else if (gameInfo.winner) {
+             gameStatusDisplay.textContent = `Ganan las ${gameInfo.winner === 'white' ? 'Blancas' : 'Negras'} por rendición.`;
         }
+    } else {
+        gameStatusDisplay.style.display = 'none';
+        turnIndicator.style.display = 'block';
+        
+        // Mostrar si el jugador está en jaque
+        if (gameInfo.check) {
+            const currentPlayer = gameInfo.turn;
+            turnIndicator.innerHTML = `Turno de: <span id="current-turn">${currentPlayer === 'white' ? 'Blancas' : 'Negras'}</span> <span style="color: #ff0000;">(¡Jaque!)</span>`;
+        } else {
+            currentTurnDisplay.textContent = gameInfo.turn === 'white' ? 'Blancas' : 'Negras';
+        }
+        
+        offerDrawBtn.disabled = false;
+        resignBtn.disabled = false;
+    }
+}
 
         function leaveRoom() {
             if (!currentUser || !userData) return;
