@@ -789,7 +789,7 @@
                             newGameState[fromRow][fromCol-4] = null;
                         }
                     } else {
-                        capturedPiece = newGameState[toRow][toCol];
+                        capturedPiece = gameState[toRow][toCol];
                         newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
                         newGameState[fromRow][fromCol] = null;
 
