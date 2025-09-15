@@ -455,6 +455,54 @@
             whiteCaptured: [],
             blackCaptured: []
         };
+
+        // Función para validar y corregir el gameState corrupto de Firebase
+        function validateAndFixGameState(gameState) {
+            console.log('Validando gameState:', gameState);
+            
+            // Si no es un array o no tiene 8 elementos, usar el estado inicial
+            if (!Array.isArray(gameState) || gameState.length !== 8) {
+                console.warn('GameState corrupto detectado, restaurando estado inicial');
+                return JSON.parse(JSON.stringify(initialGameState));
+            }
+            
+            // Verificar cada fila
+            for (let i = 0; i < 8; i++) {
+                // Si la fila no existe, es null, undefined o no es array
+                if (!gameState[i] || !Array.isArray(gameState[i]) || gameState[i].length !== 8) {
+                    console.warn(`Fila ${i} corrupta, corrigiendo...`);
+                    
+                    // Restaurar la fila desde el estado inicial
+                    gameState[i] = [...initialGameState[i]];
+                }
+                
+                // Verificar cada celda de la fila
+                for (let j = 0; j < 8; j++) {
+                    // Si la celda es null o undefined, convertir a string vacío
+                    if (gameState[i][j] === null || gameState[i][j] === undefined) {
+                        gameState[i][j] = '';
+                    }
+                }
+            }
+            
+            console.log('GameState validado:', gameState);
+            return gameState;
+        }
+
+        // Función para preparar gameState antes de enviar a Firebase
+        function prepareGameStateForFirebase(gameState) {
+            const cleanedState = [];
+            for (let i = 0; i < 8; i++) {
+                const row = [];
+                for (let j = 0; j < 8; j++) {
+                    // Convertir null/undefined a string vacío para Firebase
+                    const cell = gameState[i][j];
+                    row.push(cell === null || cell === undefined ? '' : cell);
+                }
+                cleanedState.push(row);
+            }
+            return cleanedState;
+        }
         
         function getAvatarIcon(avatarName) {
             const icons = {
@@ -945,7 +993,7 @@
                         newGameInfo.status = 'ongoing';
                     }
                     
-                    updates['gameState'] = newGameState;
+                    updates['gameState'] = prepareGameStateForFirebase(newGameState);
                     updates['gameInfo'] = newGameInfo;
 
                     roomRef.update(updates)
@@ -1024,7 +1072,7 @@
             }
 
             const updates = {
-                gameState: newGameState,
+                gameState: prepareGameStateForFirebase(newGameState),
                 gameInfo: newGameInfo
             };
 
@@ -1157,9 +1205,9 @@
 
                         // Ensure gameState exists and initialize if not
                         if (roomData.gameState) {
-                            gameState = roomData.gameState;
+                            gameState = validateAndFixGameState(roomData.gameState);
                         } else {
-                            gameState = initialGameState;
+                            gameState = JSON.parse(JSON.stringify(initialGameState));
                         }
                         
                         // Ensure gameInfo exists and initialize if not
