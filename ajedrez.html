@@ -1052,41 +1052,78 @@
             promotionModal.style.display = 'flex';
         }
 
-        function selectPromotion(pieceType) {
-            if (!promotionPending) return;
-            const { fromRow, fromCol, toRow, toCol, capturedPiece } = promotionPending;
+        // Reemplaza la función selectPromotion existente con esta versión corregida:
+function selectPromotion(pieceType) {
+    if (!promotionPending) return;
+    const { fromRow, fromCol, toRow, toCol, capturedPiece } = promotionPending;
 
-            const newGameState = JSON.parse(JSON.stringify(gameState));
-            newGameState[fromRow][fromCol] = null;
-            newGameState[toRow][toCol] = pieceType;
-            
-            const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
-            newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
-            
-            if (capturedPiece) {
-                const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
-                if (!newGameInfo[capturedPath]) {
-                    newGameInfo[capturedPath] = [];
-                }
-                newGameInfo[capturedPath].push(capturedPiece);
-            }
-
-            const updates = {
-                gameState: prepareGameStateForFirebase(newGameState),
-                gameInfo: newGameInfo
-            };
-
-            roomRef.update(updates)
-                .then(() => {
-                    console.log('Promoción enviada a Firebase.');
-                })
-                .catch(error => {
-                    console.error('Error al enviar la promoción:', error);
-                });
-
-            promotionModal.style.display = 'none';
-            promotionPending = null;
+    // CORRECCIÓN: Actualizar el gameState local ANTES de enviar a Firebase
+    const newGameState = JSON.parse(JSON.stringify(gameState));
+    newGameState[fromRow][fromCol] = null;
+    newGameState[toRow][toCol] = pieceType; // Colocar la pieza promovida
+    
+    const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
+    newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
+    
+    if (capturedPiece) {
+        const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
+        if (!newGameInfo[capturedPath]) {
+            newGameInfo[capturedPath] = [];
         }
+        newGameInfo[capturedPath].push(capturedPiece);
+    }
+
+    // CORRECCIÓN: Verificar jaque/jaque mate con la pieza promovida
+    const nextPlayerColor = newGameInfo.turn;
+    const kingPos = findKing(newGameState, nextPlayerColor[0]);
+    const attackingColor = nextPlayerColor === 'white' ? 'b' : 'w';
+    const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, attackingColor);
+
+    const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0], newGameInfo).length > 0;
+
+    newGameInfo.check = kingInCheck;
+
+    if (kingInCheck && !hasLegalMoves) {
+        newGameInfo.checkmate = true;
+        newGameInfo.winner = playerColor;
+        newGameInfo.status = 'finished';
+    } else if (!kingInCheck && !hasLegalMoves) {
+        newGameInfo.stalemate = true;
+        newGameInfo.status = 'draw';
+    } else {
+        newGameInfo.checkmate = false;
+        newGameInfo.stalemate = false;
+        newGameInfo.winner = null;
+        newGameInfo.status = 'ongoing';
+    }
+
+    const updates = {
+        gameState: prepareGameStateForFirebase(newGameState),
+        gameInfo: newGameInfo
+    };
+
+    // CORRECCIÓN: Actualizar el estado local inmediatamente
+    gameState = newGameState;
+    gameInfo = newGameInfo;
+
+    roomRef.update(updates)
+        .then(() => {
+            console.log('Promoción enviada a Firebase.');
+            // CORRECCIÓN: Limpiar selección y re-renderizar
+            selectedPiece = null;
+            possibleMoves = [];
+            renderBoard();
+        })
+        .catch(error => {
+            console.error('Error al enviar la promoción:', error);
+            // En caso de error, revertir el estado local
+            gameState = JSON.parse(JSON.stringify(gameState)); // Revertir
+            gameInfo = JSON.parse(JSON.stringify(gameInfo)); // Revertir
+        });
+
+    promotionModal.style.display = 'none';
+    promotionPending = null;
+}
 
         function renderPlayers(players, users) {
             const whitePlayer = players.white;
