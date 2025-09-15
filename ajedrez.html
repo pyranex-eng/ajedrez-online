@@ -587,25 +587,49 @@
         function renderBoard(gameState) {
             chessBoard.innerHTML = '';
             
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
+            let rows = [0, 1, 2, 3, 4, 5, 6, 7];
+            let cols = [0, 1, 2, 3, 4, 5, 6, 7];
+            
+            // Invertir el tablero para el jugador con piezas negras
+            if (playerColor === 'black') {
+                rows.reverse();
+                cols.reverse();
+            }
+            
+            for (let row of rows) {
+                for (let col of cols) {
                     const square = document.createElement('div');
                     square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
                     square.dataset.row = row;
                     square.dataset.col = col;
                     
                     // Añadir coordenadas
-                    if (col === 0) {
-                        const rankLabel = document.createElement('span');
-                        rankLabel.className = 'coordinates rank';
-                        rankLabel.textContent = 8 - row;
-                        square.appendChild(rankLabel);
-                    }
-                    if (row === 7) {
-                        const fileLabel = document.createElement('span');
-                        fileLabel.className = 'coordinates file';
-                        fileLabel.textContent = String.fromCharCode(97 + col);
-                        square.appendChild(fileLabel);
+                    if (playerColor === 'white') {
+                        if (col === 0) {
+                            const rankLabel = document.createElement('span');
+                            rankLabel.className = 'coordinates rank';
+                            rankLabel.textContent = 8 - row;
+                            square.appendChild(rankLabel);
+                        }
+                        if (row === 7) {
+                            const fileLabel = document.createElement('span');
+                            fileLabel.className = 'coordinates file';
+                            fileLabel.textContent = String.fromCharCode(97 + col);
+                            square.appendChild(fileLabel);
+                        }
+                    } else { // Orientación para negras
+                        if (col === 7) {
+                            const rankLabel = document.createElement('span');
+                            rankLabel.className = 'coordinates rank';
+                            rankLabel.textContent = 8 - row;
+                            square.appendChild(rankLabel);
+                        }
+                        if (row === 0) {
+                            const fileLabel = document.createElement('span');
+                            fileLabel.className = 'coordinates file';
+                            fileLabel.textContent = String.fromCharCode(97 + col);
+                            square.appendChild(fileLabel);
+                        }
                     }
                     
                     // Añadir pieza si existe
@@ -639,6 +663,11 @@
 
         // Manejar clic en una casilla
         function handleSquareClick(row, col) {
+            // Si el turno no es del jugador actual, no hacer nada
+            if (gameState.turn !== playerColor) {
+                return;
+            }
+
             // Si hay una pieza seleccionada
             if (selectedPiece) {
                 // Comprobar si el clic es un movimiento válido
