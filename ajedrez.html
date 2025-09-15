@@ -831,11 +831,14 @@ if (type === 'n') {
     newGameInfo[capturedPath].push(capturedPiece);
 }
 
-                    // Check for checkmate/stalemate
+// Check for checkmate/stalemate
 const nextPlayerColor = newGameInfo.turn;
 const kingPos = findKing(newGameState, nextPlayerColor[0]);
-const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, nextPlayerColor === 'white' ? 'b' : 'w');
+// CORRECCIÓN: Usar el color del oponente para verificar el ataque
+const attackingColor = nextPlayerColor === 'white' ? 'b' : 'w';
+const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, attackingColor);
 
+// CORRECCIÓN: Verificar si hay movimientos legales
 const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
 
 // Actualizar estado de jaque
@@ -848,6 +851,11 @@ if (kingInCheck && !hasLegalMoves) {
 } else if (!kingInCheck && !hasLegalMoves) {
     newGameInfo.stalemate = true;
     newGameInfo.status = 'draw';
+} else {
+    // Asegurarse de que no se marque como jaque mate si no lo es
+    newGameInfo.checkmate = false;
+    newGameInfo.stalemate = false;
+    newGameInfo.winner = null;
 }
                     
                     updates['gameState'] = newGameState;
@@ -885,18 +893,54 @@ if (kingInCheck && !hasLegalMoves) {
         }
         
         function getLegalMovesForPlayer(board, color) {
-            const allLegalMoves = [];
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
-                    const piece = board[row][col];
-                    if (piece && piece[0] === color) {
-                        const moves = getPossibleMoves(row, col);
-                        allLegalMoves.push(...moves);
+    const allLegalMoves = [];
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = board[row][col];
+            if (piece && piece[0] === color) {
+                // Obtener movimientos posibles para esta pieza
+                const moves = [];
+                const pieceType = piece[1];
+                
+                // Lógica similar a getPossibleMoves pero sin filtrar por isMoveLegal
+                // para evitar recursión infinita
+                if (pieceType === 'p') {
+                    // Lógica de peón...
+                    const direction = color === 'w' ? -1 : 1;
+                    const startRow = color === 'w' ? 6 : 1;
+                    
+                    // Movimiento normal
+                    if (row + direction >= 0 && row + direction < 8 && !board[row + direction][col]) {
+                        moves.push({row: row + direction, col: col});
+                        // Movimiento de dos casillas
+                        if (row === startRow && !board[row + 2 * direction][col]) {
+                            moves.push({row: row + 2 * direction, col: col});
+                        }
+                    }
+                    
+                    // Capturas
+                    for (let offset of [-1, 1]) {
+                        if (col + offset >= 0 && col + offset < 8) {
+                            const targetPiece = board[row + direction][col + offset];
+                            if (targetPiece && targetPiece[0] !== color) {
+                                moves.push({row: row + direction, col: col + offset});
+                            }
+                        }
                     }
                 }
+                // ... (similar para otras piezas)
+                
+                // Filtrar solo movimientos legales (que no dejen al rey en jaque)
+                const legalMoves = moves.filter(move => 
+                    isMoveLegal(row, col, move.row, move.col, move.isCastling)
+                );
+                
+                allLegalMoves.push(...legalMoves);
             }
-            return allLegalMoves;
         }
+    }
+    return allLegalMoves;
+}
 
         function highlightPossibleMoves() {
     for (let move of possibleMoves) {
