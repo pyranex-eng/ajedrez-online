@@ -890,15 +890,16 @@
         }
 
         function highlightPossibleMoves() {
-            for (let move of possibleMoves) {
-                const effectiveRow = playerColor === 'black' ? 7 - move.row : move.row;
-                const effectiveCol = playerColor === 'black' ? 7 - move.col : move.col;
-                const square = document.querySelector(`.square[data-row='${effectiveRow}'][data-col='${effectiveCol}']`);
-                if (square) {
-                    square.classList.add('possible-move');
-                }
-            }
+    for (let move of possibleMoves) {
+        // Solo invertir las filas para el jugador negro, mantener columnas igual
+        const effectiveRow = playerColor === 'black' ? 7 - move.row : move.row;
+        const effectiveCol = move.col; // No invertir columnas
+        const square = document.querySelector(`.square[data-row='${effectiveRow}'][data-col='${effectiveCol}']`);
+        if (square) {
+            square.classList.add('possible-move');
         }
+    }
+}
 
         function showPromotionModal(color) {
             promotionOptions.innerHTML = '';
