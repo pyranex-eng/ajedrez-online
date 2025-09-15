@@ -733,9 +733,9 @@
                 continue;
             }
 
-            // Obtener la pieza en la posición real del tablero
+            // Obtener la pieza en la posición real del tablero cadenas vacías "" en lugar de null suele ser más confiable.
             const piece = gameState[boardRow][boardCol];
-            if (piece) {
+            if (piece && piece !== "") {
                 const pieceElement = document.createElement('div');
                 pieceElement.classList.add('piece');
                 pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
