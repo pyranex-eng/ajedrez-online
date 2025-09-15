@@ -692,58 +692,44 @@
         return;
     }
     
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
+    for (let visualRow = 0; visualRow < 8; visualRow++) {
+        for (let visualCol = 0; visualCol < 8; visualCol++) {
             const square = document.createElement('div');
-            
-            // 1. AGREGAR CLASES CSS (FALTANTE)
             square.classList.add('square');
-            square.classList.add((row + col) % 2 === 0 ? 'dark' : 'light');
-            square.dataset.row = row;
-            square.dataset.col = col;
+            square.classList.add((visualRow + visualCol) % 2 === 0 ? 'dark' : 'light');
+            square.dataset.row = visualRow;
+            square.dataset.col = visualCol;
 
-            // 2. AGREGAR LABELS DE COORDENADAS (FALTANTE)
-            // Para las labels de archivo (a-h)
-            if (row === 7) {
+            // Determinar coordenadas reales del tablero según el color del jugador
+            const boardRow = playerColor === 'black' ? 7 - visualRow : visualRow;
+            const boardCol = playerColor === 'black' ? 7 - visualCol : visualCol;
+            
+            // Agregar labels de coordenadas
+            if (visualRow === 7) {
                 const fileLabel = document.createElement('div');
                 fileLabel.classList.add('file-label');
-                // Si es negro, muestra las letras al revés
-                const fileChar = playerColor === 'black' ? 
-                    String.fromCharCode(97 + (7 - col)) : 
-                    String.fromCharCode(97 + col);
+                const fileChar = String.fromCharCode(97 + (playerColor === 'black' ? 7 - visualCol : visualCol));
                 fileLabel.textContent = fileChar;
                 square.appendChild(fileLabel);
             }
 
-            // Para las labels de rango (1-8)
-            if (col === 0) {
+            if (visualCol === 0) {
                 const rankLabel = document.createElement('div');
                 rankLabel.classList.add('rank-label');
-                // Si es negro, muestra los números al revés
-                const rankNum = playerColor === 'black' ? 
-                    row + 1 : 
-                    8 - row;
+                const rankNum = playerColor === 'black' ? visualRow + 1 : 8 - visualRow;
                 rankLabel.textContent = rankNum;
                 square.appendChild(rankLabel);
             }
 
-            const actualRow = playerColor === 'black' ? 7 - row : row;
-            const actualCol = playerColor === 'black' ? 7 - col : col;
-            
-            // Validar que las coordenadas existen
-            if (actualRow < 0 || actualRow >= 8 || actualCol < 0 || actualCol >= 8) {
-                console.error('Coordenadas inválidas:', actualRow, actualCol);
+            // Validar coordenadas
+            if (boardRow < 0 || boardRow >= 8 || boardCol < 0 || boardCol >= 8) {
+                console.error('Coordenadas inválidas:', boardRow, boardCol);
                 continue;
             }
 
-            // VALIDACIÓN: Si la fila es undefined, saltarla
-            if (!gameState[actualRow]) {
-                console.warn('Fila', actualRow, 'es undefined, omitiendo');
-                continue;
-            }
-            
-            const piece = gameState[actualRow][actualCol];
-            if (piece && piece !== '') {
+            // Obtener la pieza en la posición real del tablero
+            const piece = gameState[boardRow][boardCol];
+            if (piece) {
                 const pieceElement = document.createElement('div');
                 pieceElement.classList.add('piece');
                 pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
@@ -751,8 +737,69 @@
                 square.appendChild(pieceElement);
             }
             
-            square.addEventListener('click', () => handleSquareClick(actualRow, actualCol));
+            // Agregar event listener con coordenadas reales del tablero
+            square.addEventListener('click', () => handleSquareClick(boardRow, boardCol));
             chessBoard.appendChild(square);
+        }
+    }
+    
+    // Resaltar movimientos posibles si hay una pieza seleccionada
+    if (selectedPiece) {
+        highlightPossibleMoves();
+    }
+}
+
+function handleSquareClick(boardRow, boardCol) {
+    if (isGameOver || gameInfo.turn !== playerColor) {
+        return;
+    }
+
+    const clickedPiece = gameState[boardRow][boardCol];
+    
+    if (selectedPiece) {
+        // Buscar si el movimiento es válido
+        const move = possibleMoves.find(m => m.row === boardRow && m.col === boardCol);
+        
+        if (move) {
+            const fromRow = selectedPiece.row;
+            const fromCol = selectedPiece.col;
+            
+            // Realizar el movimiento
+            makeMove(fromRow, fromCol, boardRow, boardCol, move);
+            
+            selectedPiece = null;
+            possibleMoves = [];
+        } else {
+            // Si se hace clic en otra pieza del mismo color, seleccionarla
+            if (clickedPiece && clickedPiece[0] === playerColor[0]) {
+                selectedPiece = { row: boardRow, col: boardCol };
+                possibleMoves = getPossibleMoves(boardRow, boardCol);
+                renderBoard();
+            } else {
+                selectedPiece = null;
+                possibleMoves = [];
+                renderBoard();
+            }
+        }
+    } else {
+        // Seleccionar una pieza si es del color del jugador
+        if (clickedPiece && clickedPiece[0] === playerColor[0]) {
+            selectedPiece = { row: boardRow, col: boardCol };
+            possibleMoves = getPossibleMoves(boardRow, boardCol);
+            renderBoard();
+        }
+    }
+}
+
+function highlightPossibleMoves() {
+    for (let move of possibleMoves) {
+        // Convertir coordenadas del tablero a coordenadas visuales
+        const visualRow = playerColor === 'black' ? 7 - move.row : move.row;
+        const visualCol = playerColor === 'black' ? 7 - move.col : move.col;
+        
+        const square = document.querySelector(`.square[data-row='${visualRow}'][data-col='${visualCol}']`);
+        if (square) {
+            square.classList.add('possible-move');
         }
     }
 }
