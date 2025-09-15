@@ -841,7 +841,7 @@ const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, att
 // CORRECCIÓN: Verificar si hay movimientos legales
 const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
 
-// Actualizar estado de jaque
+// Actualizar estado de jaque - SIEMPRE verificar
 newGameInfo.check = kingInCheck;
 
 if (kingInCheck && !hasLegalMoves) {
@@ -852,10 +852,11 @@ if (kingInCheck && !hasLegalMoves) {
     newGameInfo.stalemate = true;
     newGameInfo.status = 'draw';
 } else {
-    // Asegurarse de que no se marque como jaque mate si no lo es
+    // Asegurarse de resetear estados si el juego continúa
     newGameInfo.checkmate = false;
     newGameInfo.stalemate = false;
     newGameInfo.winner = null;
+    newGameInfo.status = 'ongoing';
 }
                     
                     updates['gameState'] = newGameState;
