@@ -245,29 +245,37 @@
             cursor: pointer;
         }
 
-        .form-group {
-            margin-bottom: 15px;
+        .avatar-container-modal {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 10px;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #ccc;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #555;
-            border-radius: 8px;
-            background-color: #333;
+        .avatar-option {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
             color: #fff;
-            font-size: 1rem;
         }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #7289da;
+        .avatar-option.selected {
+            border-color: #e94560;
+            transform: scale(1.1);
+            box-shadow: 0 0 12px rgba(233, 69, 96, 0.6);
+        }
+
+        .avatar-option i {
+            font-size: 1.8rem;
         }
 
         .modal-actions {
@@ -341,8 +349,14 @@
                 <button class="close-modal">&times;</button>
             </div>
             <div class="form-group">
-                <label for="room-name">Nombre de la Sala</label>
-                <input type="text" id="room-name" placeholder="Ej: 🏆 Sala Maestros ♟️" maxlength="30">
+                <label>Elige el avatar para tu sala</label>
+                <div class="avatar-container-modal" id="avatar-container-modal">
+                    <div class="avatar-option" data-avatar="avatar1" data-name="Rey"><i class="fas fa-chess-king"></i></div>
+                    <div class="avatar-option" data-avatar="avatar2" data-name="Reina"><i class="fas fa-chess-queen"></i></div>
+                    <div class="avatar-option" data-avatar="avatar3" data-name="Caballo"><i class="fas fa-chess-knight"></i></div>
+                    <div class="avatar-option" data-avatar="avatar4" data-name="Alfil"><i class="fas fa-chess-bishop"></i></div>
+                    <div class="avatar-option" data-avatar="avatar5" data-name="Peón"><i class="fas fa-chess-pawn"></i></div>
+                </div>
             </div>
             <div class="modal-actions">
                 <button id="cancel-create-room">Cancelar</button>
@@ -381,13 +395,15 @@
 
         // Elementos del modal
         const createRoomModal = document.getElementById('create-room-modal');
-        const roomNameInput = document.getElementById('room-name');
         const confirmCreateBtn = document.getElementById('confirm-create-room');
         const cancelCreateBtn = document.getElementById('cancel-create-room');
         const closeModalBtn = document.querySelector('.close-modal');
+        const avatarOptions = document.querySelectorAll('.avatar-option');
 
         let currentUser = null;
         let userData = null;
+        let selectedRoomAvatar = '';
+        let selectedRoomName = '';
 
         // Función para obtener el icono del avatar
         function getAvatarIcon(avatarName) {
@@ -473,170 +489,158 @@
             });
         }
 
+        // Configurar selección de avatar para la sala
+        avatarOptions.forEach(avatar => {
+            avatar.addEventListener('click', () => {
+                avatarOptions.forEach(a => a.classList.remove('selected'));
+                avatar.classList.add('selected');
+                selectedRoomAvatar = avatar.getAttribute('data-avatar');
+                selectedRoomName = avatar.getAttribute('data-name');
+            });
+        });
+
         // Funciones del modal
         function openModal() {
             createRoomModal.style.display = 'flex';
+            // Seleccionar un avatar por defecto
+            const defaultAvatar = document.querySelector('.avatar-option[data-avatar="avatar1"]');
+            defaultAvatar.click();
         }
 
         function closeModal() {
             createRoomModal.style.display = 'none';
-            roomNameInput.value = '';
         }
 
         // Manejador de eventos para abrir/cerrar modal
         createRoomBtn.addEventListener('click', openModal);
-        cancelCreateBtn.addEventListener('click', closeModal);
         closeModalBtn.addEventListener('click', closeModal);
-        window.addEventListener('click', (event) => {
-            if (event.target === createRoomModal) {
-                closeModal();
-            }
-        });
+        cancelCreateBtn.addEventListener('click', closeModal);
 
-        // Manejador para crear una sala
-        confirmCreateBtn.addEventListener('click', () => {
-            const roomName = roomNameInput.value.trim();
-            if (!roomName) {
-                alert('Por favor, introduce un nombre para la sala.');
+        // Función para crear sala
+        function createRoom() {
+            if (!selectedRoomAvatar) {
+                alert('Por favor selecciona un avatar para la sala');
                 return;
             }
 
-            const newRoomRef = roomsRef.push();
-            const roomId = newRoomRef.key;
-            
-            // Validar que el objeto userData exista antes de usarlo
-            if (!userData) {
-                alert('Error: Datos de usuario no cargados. Intenta recargar la página.');
-                return;
-            }
-
+            const roomId = Date.now().toString();
             const roomData = {
-                name: roomName,
-                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                name: selectedRoomName,
+                avatar: selectedRoomAvatar,
+                createdBy: currentUser.uid,
+                createdAt: Date.now(),
                 players: {
                     [currentUser.uid]: {
-                        uid: currentUser.uid,
                         username: userData.username,
                         avatar: userData.avatar,
-                        color: 'white', // El creador siempre es blanco
+                        joinedAt: Date.now()
                     }
-                },
-                turn: 'white',
-                gameState: [
-                    ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
-                    ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
-                    ['', '', '', '', '', '', '', ''],
-                    ['', '', '', '', '', '', '', ''],
-                    ['', '', '', '', '', '', '', ''],
-                    ['', '', '', '', '', '', '', ''],
-                    ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
-                    ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
-                ]
+                }
             };
 
-            newRoomRef.set(roomData)
+            roomsRef.child(roomId).set(roomData)
                 .then(() => {
-                    console.log("Sala creada con ID:", roomId);
                     closeModal();
-                    // Redirigir al usuario a la sala de ajedrez
                     window.location.href = `ajedrez.html?room=${roomId}`;
                 })
                 .catch(error => {
-                    console.error("Error al crear la sala:", error);
-                    alert("Error al crear la sala. Inténtalo de nuevo.");
+                    console.error('Error al crear la sala:', error);
+                    alert('Error al crear la sala. Inténtalo de nuevo.');
                 });
-        });
+        }
 
-        // Lógica para unirse a una sala
+        confirmCreateBtn.addEventListener('click', createRoom);
+
+        // Función para unirse a sala
         function joinRoom(roomId) {
-            const roomRef = roomsRef.child(roomId);
-            roomRef.transaction((currentData) => {
-                if (currentData === null) {
-                    return; // La sala ya no existe, abortar
-                }
-
-                const players = currentData.players || {};
-                const playerCount = Object.keys(players).length;
-
-                if (playerCount >= 2) {
-                    alert('Esta sala ya está llena.');
-                    return; // Abortar la transacción
-                }
-
-                // Asegurarse de que el usuario no está ya en la sala
-                if (players[currentUser.uid]) {
-                    window.location.href = `ajedrez.html?room=${roomId}`;
-                    return;
-                }
-
-                // Determinar el color del nuevo jugador
-                const newPlayerColor = players['white'] ? 'black' : 'white';
-
-                // Agregar el nuevo jugador
-                players[currentUser.uid] = {
-                    uid: currentUser.uid,
+            const playerData = {
+                [currentUser.uid]: {
                     username: userData.username,
                     avatar: userData.avatar,
-                    color: newPlayerColor,
-                };
-                currentData.players = players;
-                return currentData;
-
-            }, (error, committed, snapshot) => {
-                if (error) {
-                    console.error('Transacción fallida:', error);
-                    alert('Error al unirse a la sala. Inténtalo de nuevo.');
-                } else if (committed) {
-                    console.log('Usuario unido a la sala:', roomId);
-                    window.location.href = `ajedrez.html?room=${roomId}`;
-                } else {
-                    console.log('Transacción abortada (la sala ya estaba llena o el usuario ya estaba en ella).');
+                    joinedAt: Date.now()
                 }
+            };
+
+            // Usar transacción para evitar condiciones de carrera
+            roomsRef.child(`${roomId}/players`).transaction((currentPlayers) => {
+                if (!currentPlayers) {
+                    return playerData;
+                }
+                
+                if (Object.keys(currentPlayers).length >= 2) {
+                    // La sala ya está llena
+                    alert('La sala ya está llena');
+                    return;
+                }
+                
+                // Agregar jugador a la sala
+                return {
+                    ...currentPlayers,
+                    ...playerData
+                };
+            }).then(() => {
+                window.location.href = `ajedrez.html?room=${roomId}`;
+            }).catch(error => {
+                console.error('Error al unirse a la sala:', error);
+                alert('Error al unirse a la sala. Inténtalo de nuevo.');
             });
         }
 
-        // Manejador de eventos para el botón de cerrar sesión
-        logoutBtn.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                console.log("Usuario ha cerrado sesión.");
-            }).catch((error) => {
-                console.error("Error al cerrar sesión:", error);
-            });
-        });
-
-        // Verificar autenticación y cargar datos
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                currentUser = user;
-                const userRef = database.ref('users/' + user.uid);
-                userRef.once('value').then((snapshot) => {
-                    userData = snapshot.val();
-                    if (userData) {
-                        usernameDisplay.textContent = userData.username;
-                        const avatarIcon = getAvatarIcon(userData.avatar);
-                        userAvatarDisplay.innerHTML = `<i class="fas ${avatarIcon}"></i>`;
-                        
-                        // Actualizar estado a conectado
-                        userRef.update({
-                            online: true,
-                            lastLogin: firebase.database.ServerValue.TIMESTAMP
-                        });
-                        
-                        // Escuchar cambios en las salas
-                        roomsRef.on('value', (snapshot) => {
-                            const roomsData = snapshot.val();
-                            renderRooms(roomsData);
-                        });
-                    } else {
-                        // Redirigir si no se encuentran los datos del usuario
-                        alert("Datos de usuario no encontrados. Redirigiendo al login.");
-                        auth.signOut();
+        // Función para eliminar salas vacías
+        function cleanupEmptyRooms() {
+            roomsRef.once('value', (snapshot) => {
+                const rooms = snapshot.val();
+                if (!rooms) return;
+                
+                Object.entries(rooms).forEach(([roomId, roomData]) => {
+                    if (!roomData.players || Object.keys(roomData.players).length === 0) {
+                        roomsRef.child(roomId).remove()
+                            .catch(error => console.error('Error eliminando sala vacía:', error));
                     }
                 });
+            });
+        }
+
+        // Verificar autenticación
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                usersRef.child(user.uid).once('value')
+                    .then(snapshot => {
+                        userData = snapshot.val();
+                        if (userData) {
+                            usernameDisplay.textContent = userData.username;
+                            userAvatarDisplay.innerHTML = `<i class="fas ${getAvatarIcon(userData.avatar)}"></i>`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error obteniendo datos de usuario:', error);
+                    });
+                
+                // Escuchar cambios en las salas
+                roomsRef.on('value', snapshot => {
+                    const roomsData = snapshot.val();
+                    renderRooms(roomsData);
+                    cleanupEmptyRooms(); // Limpiar salas vacías
+                });
             } else {
-                window.location.href = 'login-registro.html';
+                window.location.href = 'index.html';
             }
         });
+
+        // Cerrar sesión
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut()
+                .then(() => {
+                    window.location.href = 'index.html';
+                })
+                .catch(error => {
+                    console.error('Error cerrando sesión:', error);
+                });
+        });
+
+        // Limpiar salas vacías periódicamente
+        setInterval(cleanupEmptyRooms, 60000); // Cada minuto
     </script>
 </body>
 </html>
