@@ -750,17 +750,25 @@
 }
 
 function handleSquareClick(boardRow, boardCol) {
+    console.log("Click en:", boardRow, boardCol, "Player:", playerColor);
+    
     if (isGameOver || gameInfo.turn !== playerColor) {
+        console.log("No es tu turno o juego terminado");
         return;
     }
 
     const clickedPiece = gameState[boardRow][boardCol];
+    console.log("Pieza clickeada:", clickedPiece);
     
     if (selectedPiece) {
+        console.log("Pieza ya seleccionada en:", selectedPiece.row, selectedPiece.col);
+        console.log("Movimientos posibles:", possibleMoves);
+        
         // Buscar si el movimiento es válido
         const move = possibleMoves.find(m => m.row === boardRow && m.col === boardCol);
         
         if (move) {
+            console.log("Movimiento válido encontrado");
             const fromRow = selectedPiece.row;
             const fromCol = selectedPiece.col;
             
@@ -772,10 +780,13 @@ function handleSquareClick(boardRow, boardCol) {
         } else {
             // Si se hace clic en otra pieza del mismo color, seleccionarla
             if (clickedPiece && clickedPiece[0] === playerColor[0]) {
+                console.log("Seleccionando nueva pieza");
                 selectedPiece = { row: boardRow, col: boardCol };
                 possibleMoves = getPossibleMoves(boardRow, boardCol);
+                console.log("Nuevos movimientos posibles:", possibleMoves);
                 renderBoard();
             } else {
+                console.log("Deseleccionando pieza");
                 selectedPiece = null;
                 possibleMoves = [];
                 renderBoard();
@@ -784,11 +795,125 @@ function handleSquareClick(boardRow, boardCol) {
     } else {
         // Seleccionar una pieza si es del color del jugador
         if (clickedPiece && clickedPiece[0] === playerColor[0]) {
+            console.log("Seleccionando pieza por primera vez");
             selectedPiece = { row: boardRow, col: boardCol };
             possibleMoves = getPossibleMoves(boardRow, boardCol);
+            console.log("Movimientos posibles:", possibleMoves);
             renderBoard();
+        } else {
+            console.log("No es una pieza del jugador actual");
         }
     }
+}
+
+function makeMove(fromRow, fromCol, toRow, toCol, move) {
+    const updates = {};
+    const newGameState = JSON.parse(JSON.stringify(gameState));
+    let capturedPiece = null;
+    
+    // LÓGICA DE MOVIMIENTO Y CAPTURA
+    if (move.isCastling) {
+        // Enroque
+        if (move.isCastling === 'kingSide') {
+            newGameState[fromRow][fromCol+2] = newGameState[fromRow][fromCol];
+            newGameState[fromRow][fromCol] = null;
+            newGameState[fromRow][fromCol+1] = newGameState[fromRow][fromCol+3];
+            newGameState[fromRow][fromCol+3] = null;
+        } else if (move.isCastling === 'queenSide') {
+            newGameState[fromRow][fromCol-2] = newGameState[fromRow][fromCol];
+            newGameState[fromRow][fromCol] = null;
+            newGameState[fromRow][fromCol-1] = newGameState[fromRow][fromCol-4];
+            newGameState[fromRow][fromCol-4] = null;
+        }
+    } 
+    else if (move.isEnPassant) {
+        // Captura al paso
+        const capturedPawnRow = playerColor === 'white' ? toRow + 1 : toRow - 1;
+        capturedPiece = newGameState[capturedPawnRow][toCol];
+        newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
+        newGameState[fromRow][fromCol] = null;
+        newGameState[capturedPawnRow][toCol] = null;
+    }
+    else {
+        // Movimiento normal
+        capturedPiece = newGameState[toRow][toCol];
+        newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
+        newGameState[fromRow][fromCol] = null;
+    }
+
+    const pieceToMove = gameState[fromRow][fromCol];
+    
+    // Promoción de peón
+    if (pieceToMove && pieceToMove[1] === 'p' && (toRow === 0 || toRow === 7)) {
+        promotionPending = { fromRow, fromCol, toRow, toCol, capturedPiece };
+        showPromotionModal(playerColor);
+        return;
+    }
+    
+    // Update game info
+    const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
+    newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
+    newGameInfo.enPassantTarget = null;
+    
+    // Inicializar arrays de piezas capturadas
+    if (!newGameInfo.whiteCaptured) newGameInfo.whiteCaptured = [];
+    if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
+
+    // Actualizar derechos de enroque
+    if (pieceToMove === 'wk' || (pieceToMove === 'wr' && fromCol === 7)) { 
+        newGameInfo.canWhiteKingSideCastle = false; 
+    }
+    if (pieceToMove === 'wk' || (pieceToMove === 'wr' && fromCol === 0)) { 
+        newGameInfo.canWhiteQueenSideCastle = false; 
+    }
+    if (pieceToMove === 'bk' || (pieceToMove === 'br' && fromCol === 7)) { 
+        newGameInfo.canBlackKingSideCastle = false; 
+    }
+    if (pieceToMove === 'bk' || (pieceToMove === 'br' && fromCol === 0)) { 
+        newGameInfo.canBlackQueenSideCastle = false; 
+    }
+
+    // Establecer objetivo de captura al paso
+    if (pieceToMove[1] === 'p' && Math.abs(fromRow - toRow) === 2) {
+        newGameInfo.enPassantTarget = {row: (fromRow + toRow) / 2, col: toCol};
+    }
+    
+    // Registrar pieza capturada
+    if (capturedPiece) {
+        const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
+        newGameInfo[capturedPath].push(capturedPiece);
+    }
+
+    // Check for checkmate/stalemate
+    const nextPlayerColor = newGameInfo.turn;
+    const kingPos = findKing(newGameState, nextPlayerColor[0]);
+    if (kingPos) {
+        const opponentColor = nextPlayerColor === 'white' ? 'b' : 'w';
+        const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, opponentColor);
+        
+        const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
+        
+        if (kingInCheck && !hasLegalMoves) {
+            newGameInfo.checkmate = true;
+            newGameInfo.winner = playerColor;
+            newGameInfo.status = 'finished';
+        } else if (!kingInCheck && !hasLegalMoves) {
+            newGameInfo.stalemate = true;
+            newGameInfo.status = 'draw';
+        }
+    }
+    
+    updates['gameState'] = newGameState;
+    updates['gameInfo'] = newGameInfo;
+
+    roomRef.update(updates)
+        .then(() => {
+            console.log('Movimiento enviado a Firebase.');
+            renderCapturedPieces(newGameInfo);
+        })
+        .catch(error => {
+            console.error('Error al enviar el movimiento:', error);
+        });
 }
 
 function highlightPossibleMoves() {
