@@ -712,7 +712,7 @@
             const actualCol = playerColor === 'black' ? 7 - col : col;
             
             const piece = gameState[actualRow][actualCol];
-            if (piece) {
+if (piece && piece !== null && piece !== undefined) {
                 const pieceElement = document.createElement('div');
                 pieceElement.classList.add('piece');
                 pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
@@ -1043,7 +1043,7 @@
                         
                         renderBoard();
                         renderGameStatus();
-                        renderCapturedPieces(roomData.gameInfo);
+                        renderCapturedPieces(gameInfo);
                         
                         roomNameDisplay.textContent = `Sala: ${roomData.name}`;
 
@@ -1069,9 +1069,14 @@
         });
 
         function renderCapturedPieces(gameInfo) {
-            whiteCapturedList.innerHTML = gameInfo.whiteCaptured.map(p => `<span class="captured-piece black">${pieceSymbols[p]}</span>`).join('');
-            blackCapturedList.innerHTML = gameInfo.blackCaptured.map(p => `<span class="captured-piece white">${pieceSymbols[p]}</span>`).join('');
-        }
+    if (!gameInfo) {
+        whiteCapturedList.innerHTML = '';
+        blackCapturedList.innerHTML = '';
+        return;
+    }
+    whiteCapturedList.innerHTML = gameInfo.whiteCaptured.map(p => `<span class="captured-piece black">${pieceSymbols[p]}</span>`).join('');
+    blackCapturedList.innerHTML = gameInfo.blackCaptured.map(p => `<span class="captured-piece white">${pieceSymbols[p]}</span>`).join('');
+}
 
         leaveBtn.addEventListener('click', () => {
             if (confirm('¿Estás seguro de que quieres abandonar la sala?')) {
