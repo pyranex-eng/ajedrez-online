@@ -107,21 +107,25 @@
             background-color: #ff6b6b !important;
         }
         
-        .piece-svg {
-            width: 80%;
-            height: 80%;
+        .piece {
+            font-size: 2.5rem;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .piece-svg .white-piece {
-            fill: #fff;
-            stroke: #000;
-            stroke-width: 20;
+        .white-piece {
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
         }
 
-        .piece-svg .black-piece {
-            fill: #000;
-            stroke: #fff;
-            stroke-width: 20;
+        .black-piece {
+            color: #000;
+            text-shadow: 1px 1px 2px #fff;
         }
 
         .game-info {
@@ -295,6 +299,29 @@
             transform: scale(1.1);
         }
 
+        .status-message {
+            text-align: center;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .status-check {
+            background-color: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        .status-checkmate {
+            background-color: rgba(233, 69, 96, 0.3);
+            color: #e94560;
+        }
+
+        .status-stalemate {
+            background-color: rgba(114, 137, 218, 0.3);
+            color: #7289da;
+        }
+
         @media (max-width: 768px) {
             .game-container {
                 flex-direction: column;
@@ -304,7 +331,7 @@
                 min-width: unset;
             }
             
-            .square {
+            .piece {
                 font-size: 1.8rem;
             }
         }
@@ -346,6 +373,8 @@
             <div class="turn-indicator" id="turn-indicator">
                 Turno de: <span id="current-turn">...</span>
             </div>
+            
+            <div id="game-status" class="status-message" style="display: none;"></div>
             
             <div class="captured-pieces">
                 <h3>Piezas capturadas (Blancas):</h3>
@@ -409,6 +438,8 @@
         let selectedPiece = null;
         let possibleMoves = [];
         let gameState = null;
+        let isGameOver = false;
+        let promotionPending = null;
 
         // Elementos del DOM
         const chessBoard = document.getElementById('chess-board');
@@ -424,6 +455,15 @@
         const promotionOptions = document.getElementById('promotion-options');
         const whiteCapturedList = document.getElementById('white-captured');
         const blackCapturedList = document.getElementById('black-captured');
+        const gameStatusDisplay = document.getElementById('game-status');
+        const offerDrawBtn = document.getElementById('offer-draw-btn');
+        const resignBtn = document.getElementById('resign-btn');
+
+        // Símbolos de las piezas en Unicode
+        const pieceSymbols = {
+            'wk': '♔', 'wq': '♕', 'wr': '♖', 'wn': '♘', 'wb': '♗', 'wp': '♙',
+            'bk': '♚', 'bq': '♛', 'br': '♜', 'bn': '♞', 'bb': '♝', 'bp': '♟'
+        };
 
         // Estado inicial del tablero de ajedrez
         const initialGameState = [
@@ -436,19 +476,20 @@
             ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
             ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
         ];
-        
-        // Símbolos de las piezas en Unicode (más confiables que SVG)
-        const pieceSymbols = {
-            'wk': '♔', 'wq': '♕', 'wr': '♖', 'wn': '♘', 'wb': '♗', 'wp': '♙',
-            'bk': '♚', 'bq': '♛', 'br': '♜', 'bn': '♞', 'bb': '♝', 'bp': '♟'
-        };
 
-        // Clases CSS para colorear las piezas
-        const pieceClasses = {
-            'wk': 'white-piece', 'wq': 'white-piece', 'wr': 'white-piece', 
-            'wn': 'white-piece', 'wb': 'white-piece', 'wp': 'white-piece',
-            'bk': 'black-piece', 'bq': 'black-piece', 'br': 'black-piece', 
-            'bn': 'black-piece', 'bb': 'black-piece', 'bp': 'black-piece'
+        // Información adicional del juego
+        const initialGameInfo = {
+            turn: 'white',
+            canWhiteKingSideCastle: true,
+            canWhiteQueenSideCastle: true,
+            canBlackKingSideCastle: true,
+            canBlackQueenSideCastle: true,
+            enPassantTarget: null,
+            halfMoveClock: 0,
+            fullMoveNumber: 1,
+            check: false,
+            checkmate: false,
+            stalemate: false
         };
 
         // Reglas del juego - implementación mejorada
@@ -469,21 +510,21 @@
                 
                 // Movimiento hacia adelante
                 if (row + direction >= 0 && row + direction < 8 && !gameState[row + direction][col]) {
-                    moves.push({ row: row + direction, col: col });
+                    moves.push({row: row + direction, col: col});
                     
-                    // Doble movimiento desde posición inicial
+                    // Doble movimiento desde la posición inicial
                     if (row === startRow && !gameState[row + 2*direction][col]) {
-                        moves.push({ row: row + 2*direction, col: col });
+                        moves.push({row: row + 2*direction, col: col});
                     }
                 }
                 
-                // Capturas diagonales
+                // Capturas
                 for (let offset of [-1, 1]) {
-                    if (col + offset >= 0 && col + offset < 8 && 
-                        row + direction >= 0 && row + direction < 8 &&
-                        gameState[row + direction][col + offset] &&
-                        gameState[row + direction][col + offset][0] !== color) {
-                        moves.push({ row: row + direction, col: col + offset });
+                    if (col + offset >= 0 && col + offset < 8) {
+                        if (gameState[row + direction][col + offset] && 
+                            gameState[row + direction][col + offset][0] !== color) {
+                            moves.push({row: row + direction, col: col + offset});
+                        }
                     }
                 }
             }
@@ -491,15 +532,15 @@
             // Movimientos para torres y damas (movimientos horizontales/verticales)
             if (type === 'r' || type === 'q') {
                 const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-                for (const [dr, dc] of directions) {
+                for (let [dr, dc] of directions) {
                     let r = row + dr;
                     let c = col + dc;
                     while (r >= 0 && r < 8 && c >= 0 && c < 8) {
                         if (!gameState[r][c]) {
-                            moves.push({ row: r, col: c });
+                            moves.push({row: r, col: c});
                         } else {
                             if (gameState[r][c][0] !== color) {
-                                moves.push({ row: r, col: c });
+                                moves.push({row: r, col: c});
                             }
                             break;
                         }
@@ -512,15 +553,15 @@
             // Movimientos para alfiles y damas (movimientos diagonales)
             if (type === 'b' || type === 'q') {
                 const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
-                for (const [dr, dc] of directions) {
+                for (let [dr, dc] of directions) {
                     let r = row + dr;
                     let c = col + dc;
                     while (r >= 0 && r < 8 && c >= 0 && c < 8) {
                         if (!gameState[r][c]) {
-                            moves.push({ row: r, col: c });
+                            moves.push({row: r, col: c});
                         } else {
                             if (gameState[r][c][0] !== color) {
-                                moves.push({ row: r, col: c });
+                                moves.push({row: r, col: c});
                             }
                             break;
                         }
@@ -536,13 +577,12 @@
                     [-2, -1], [-2, 1], [-1, -2], [-1, 2],
                     [1, -2], [1, 2], [2, -1], [2, 1]
                 ];
-                
-                for (const [dr, dc] of knightMoves) {
+                for (let [dr, dc] of knightMoves) {
                     const r = row + dr;
                     const c = col + dc;
                     if (r >= 0 && r < 8 && c >= 0 && c < 8) {
                         if (!gameState[r][c] || gameState[r][c][0] !== color) {
-                            moves.push({ row: r, col: c });
+                            moves.push({row: r, col: c});
                         }
                     }
                 }
@@ -555,13 +595,12 @@
                     [0, -1], [0, 1],
                     [1, -1], [1, 0], [1, 1]
                 ];
-                
-                for (const [dr, dc] of kingMoves) {
+                for (let [dr, dc] of kingMoves) {
                     const r = row + dr;
                     const c = col + dc;
                     if (r >= 0 && r < 8 && c >= 0 && c < 8) {
                         if (!gameState[r][c] || gameState[r][c][0] !== color) {
-                            moves.push({ row: r, col: c });
+                            moves.push({row: r, col: c});
                         }
                     }
                 }
@@ -570,28 +609,29 @@
             return moves;
         }
 
-        // Dibujar el tablero de ajedrez
-        function drawChessboard() {
+        // Renderizar el tablero de ajedrez
+        function renderBoard() {
             chessBoard.innerHTML = '';
             
             for (let row = 0; row < 8; row++) {
                 for (let col = 0; col < 8; col++) {
                     const square = document.createElement('div');
-                    square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+                    square.classList.add('square');
+                    square.classList.add((row + col) % 2 === 0 ? 'dark' : 'light');
                     square.dataset.row = row;
                     square.dataset.col = col;
                     
                     // Añadir coordenadas
                     if (row === 7) {
                         const fileLabel = document.createElement('span');
-                        fileLabel.className = 'coordinates file';
+                        fileLabel.classList.add('coordinates', 'file');
                         fileLabel.textContent = String.fromCharCode(97 + col);
                         square.appendChild(fileLabel);
                     }
                     
                     if (col === 0) {
                         const rankLabel = document.createElement('span');
-                        rankLabel.className = 'coordinates rank';
+                        rankLabel.classList.add('coordinates', 'rank');
                         rankLabel.textContent = 8 - row;
                         square.appendChild(rankLabel);
                     }
@@ -600,42 +640,49 @@
                     const piece = gameState[row][col];
                     if (piece) {
                         const pieceElement = document.createElement('div');
-                        pieceElement.className = `piece ${pieceClasses[piece]}`;
+                        pieceElement.classList.add('piece');
+                        pieceElement.classList.add(piece[0] === 'w' ? 'white-piece' : 'black-piece');
                         pieceElement.textContent = pieceSymbols[piece];
-                        pieceElement.style.fontSize = '2.5rem';
                         square.appendChild(pieceElement);
                         square.classList.add('has-piece');
                     }
                     
+                    // Evento de clic en la casilla
                     square.addEventListener('click', () => handleSquareClick(row, col));
+                    
+                    // Resaltar casillas seleccionadas y posibles movimientos
+                    if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
+                        square.classList.add('selected');
+                    }
+                    
+                    if (possibleMoves.some(move => move.row === row && move.col === col)) {
+                        square.classList.add('possible-move');
+                        if (gameState[row][col]) {
+                            square.classList.add('has-piece');
+                        }
+                    }
+                    
                     chessBoard.appendChild(square);
                 }
             }
             
-            // Resaltar movimientos posibles si hay una pieza seleccionada
-            if (selectedPiece) {
-                const selectedSquare = document.querySelector(`.square[data-row="${selectedPiece.row}"][data-col="${selectedPiece.col}"]`);
-                if (selectedSquare) {
-                    selectedSquare.classList.add('selected');
-                }
-                
-                for (const move of possibleMoves) {
-                    const moveSquare = document.querySelector(`.square[data-row="${move.row}"][data-col="${move.col}"]`);
-                    if (moveSquare) {
-                        moveSquare.classList.add('possible-move');
-                        if (gameState[move.row][move.col]) {
-                            moveSquare.classList.add('has-piece');
-                        }
-                    }
-                }
+            // Rotar el tablero si el jugador es negro
+            if (playerColor === 'black') {
+                chessBoard.style.transform = 'rotate(180deg)';
+                const pieces = document.querySelectorAll('.piece');
+                pieces.forEach(piece => {
+                    piece.style.transform = 'rotate(180deg)';
+                });
             }
         }
 
         // Manejar clic en una casilla
         function handleSquareClick(row, col) {
+            if (isGameOver) return;
+            
             // Si no es el turno del jugador, no hacer nada
-            if (!gameState || (playerColor === 'white' && gameState.turn !== 'white') ||
-                (playerColor === 'black' && gameState.turn !== 'black')) {
+            if (playerColor !== gameInfo.turn) {
+                showMessage("No es tu turno");
                 return;
             }
             
@@ -643,222 +690,333 @@
             
             // Si ya hay una pieza seleccionada
             if (selectedPiece) {
-                // Verificar si el movimiento es válido
-                const isValidMove = possibleMoves.some(move => move.row === row && move.col === col);
+                // Si se hace clic en un movimiento posible
+                const isPossibleMove = possibleMoves.some(move => 
+                    move.row === row && move.col === col
+                );
                 
-                if (isValidMove) {
+                if (isPossibleMove) {
                     // Mover la pieza
                     movePiece(selectedPiece.row, selectedPiece.col, row, col);
+                    clearSelection();
+                    return;
                 }
                 
-                // Limpiar selección
-                selectedPiece = null;
-                possibleMoves = [];
-                drawChessboard();
-            } else if (piece && piece[0] === playerColor[0]) {
-                // Seleccionar una pieza
-                selectedPiece = { row, col };
-                possibleMoves = getPossibleMoves(row, col);
-                drawChessboard();
+                // Si se hace clic en otra pieza del mismo color, seleccionarla
+                if (piece && piece[0] === playerColor[0]) {
+                    clearSelection();
+                    selectPiece(row, col);
+                    return;
+                }
+                
+                // Si se hace clic en cualquier otro lugar, limpiar selección
+                clearSelection();
+                return;
             }
+            
+            // Si no hay pieza seleccionada y se hace clic en una pieza del jugador
+            if (piece && piece[0] === playerColor[0]) {
+                selectPiece(row, col);
+            }
+        }
+
+        // Seleccionar una pieza
+        function selectPiece(row, col) {
+            selectedPiece = { row, col };
+            possibleMoves = getPossibleMoves(row, col);
+            renderBoard();
+        }
+
+        // Limpiar selección
+        function clearSelection() {
+            selectedPiece = null;
+            possibleMoves = [];
+            renderBoard();
         }
 
         // Mover una pieza
         function movePiece(fromRow, fromCol, toRow, toCol) {
             const piece = gameState[fromRow][fromCol];
             
-            // Verificar si es una captura
-            if (gameState[toRow][toCol]) {
-                const capturedPiece = gameState[toRow][toCol];
-                addCapturedPiece(capturedPiece);
+            // Verificar si es un movimiento de promoción de peón
+            if (piece[1] === 'p' && (toRow === 0 || toRow === 7)) {
+                // Mostrar modal de promoción
+                showPromotionModal(piece[0], toRow, toCol);
+                return;
             }
             
-            // Mover la pieza
+            // Realizar el movimiento
             gameState[toRow][toCol] = piece;
             gameState[fromRow][fromCol] = null;
             
-            // Cambiar el turno
-            gameState.turn = gameState.turn === 'white' ? 'black' : 'white';
+            // Cambiar turno
+            gameInfo.turn = gameInfo.turn === 'white' ? 'black' : 'white';
             
             // Actualizar la base de datos
+            updateGameState();
+        }
+
+        // Mostrar modal de promoción
+        function showPromotionModal(color, row, col) {
+            promotionPending = { row, col };
+            promotionModal.style.display = 'flex';
+            promotionOptions.innerHTML = '';
+            
+            const pieces = ['q', 'r', 'b', 'n'];
+            pieces.forEach(piece => {
+                const option = document.createElement('div');
+                option.classList.add('promotion-option');
+                option.classList.add(color === 'w' ? 'white-piece' : 'black-piece');
+                option.textContent = pieceSymbols[color + piece];
+                option.addEventListener('click', () => {
+                    promotePawn(color + piece);
+                    promotionModal.style.display = 'none';
+                });
+                promotionOptions.appendChild(option);
+            });
+        }
+
+        // Promocionar peón
+        function promotePawn(piece) {
+            if (!promotionPending) return;
+            
+            const { row, col } = promotionPending;
+            gameState[row][col] = piece;
+            
+            // Cambiar turno
+            gameInfo.turn = gameInfo.turn === 'white' ? 'black' : 'white';
+            
+            // Actualizar la base de datos
+            updateGameState();
+            
+            promotionPending = null;
+        }
+
+        // Actualizar el estado del juego en Firebase
+        function updateGameState() {
             roomRef.update({
                 gameState: gameState,
-                turn: gameState.turn
+                gameInfo: gameInfo
             });
-            
-            // Actualizar la interfaz
-            updateTurnIndicator();
         }
 
-        // Añadir pieza capturada
-        function addCapturedPiece(piece) {
-            const capturedElement = document.createElement('span');
-            capturedElement.className = `captured-piece ${pieceClasses[piece]}`;
-            capturedElement.textContent = pieceSymbols[piece];
+        // Mostrar mensaje temporal
+        function showMessage(message, duration = 3000) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            messageElement.style.position = 'fixed';
+            messageElement.style.top = '20px';
+            messageElement.style.left = '50%';
+            messageElement.style.transform = 'translateX(-50%)';
+            messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            messageElement.style.color = 'white';
+            messageElement.style.padding = '10px 20px';
+            messageElement.style.borderRadius = '5px';
+            messageElement.style.zIndex = '1000';
             
-            if (piece[0] === 'w') {
-                whiteCapturedList.appendChild(capturedElement);
-            } else {
-                blackCapturedList.appendChild(capturedElement);
-            }
-        }
-
-        // Actualizar indicador de turno
-        function updateTurnIndicator() {
-            if (gameState && gameState.turn) {
-                currentTurnDisplay.textContent = gameState.turn === 'white' ? 'Blancas' : 'Negras';
-            }
+            document.body.appendChild(messageElement);
+            
+            setTimeout(() => {
+                document.body.removeChild(messageElement);
+            }, duration);
         }
 
         // Inicializar la aplicación
-        function initApp() {
+        function init() {
+            // Verificar autenticación
             auth.onAuthStateChanged(user => {
                 if (user) {
                     currentUser = user;
-                    
-                    // Obtener datos del usuario
-                    usersRef.child(user.uid).once('value').then(snapshot => {
-                        userData = snapshot.val();
-                        
-                        // Unirse a la sala
-                        joinRoom();
-                    });
+                    loadUserData();
+                    joinRoom();
                 } else {
-                    // No autenticado, redirigir al login
                     window.location.href = 'index.html';
                 }
+            });
+            
+            // Configurar evento para el botón de abandonar sala
+            leaveBtn.addEventListener('click', leaveRoom);
+            
+            // Configurar eventos para los botones de juego
+            offerDrawBtn.addEventListener('click', offerDraw);
+            resignBtn.addEventListener('click', resign);
+            
+            // Escuchar cambios en la sala
+            roomRef.on('value', snapshot => {
+                const roomData = snapshot.val();
+                if (roomData) {
+                    updateRoomUI(roomData);
+                }
+            });
+            
+            // Escuchar desconexiones
+            roomRef.child('players').on('child_removed', snapshot => {
+                const playerId = snapshot.key;
+                if (playerId === 'white' || playerId === 'black') {
+                    showMessage(`El jugador con ${playerId === 'white' ? 'blancas' : 'negras'} se ha desconectado`);
+                }
+            });
+            
+            // Manejar cierre de la ventana/desconexión
+            window.addEventListener('beforeunload', () => {
+                if (currentUser && roomId) {
+                    leaveRoom();
+                }
+            });
+        }
+
+        // Cargar datos del usuario
+        function loadUserData() {
+            usersRef.child(currentUser.uid).once('value', snapshot => {
+                userData = snapshot.val();
             });
         }
 
         // Unirse a la sala
         function joinRoom() {
-            roomRef.once('value').then(snapshot => {
-                const room = snapshot.val();
+            roomRef.child('players').once('value', snapshot => {
+                const players = snapshot.val();
                 
-                if (!room) {
-                    alert("La sala no existe. Redirigiendo...");
-                    window.location.href = 'salas.html';
-                    return;
-                }
-                
-                // Mostrar nombre de la sala
-                roomNameDisplay.textContent += room.name;
-                
-                // Verificar si la sala está llena
-                if (room.whitePlayer && room.blackPlayer) {
-                    if (room.whitePlayer.uid !== currentUser.uid && room.blackPlayer.uid !== currentUser.uid) {
-                        alert("La sala está llena. Redirigiendo...");
-                        window.location.href = 'salas.html';
-                        return;
-                    }
-                }
-                
-                // Determinar el color del jugador
-                if (!room.whitePlayer) {
+                // Verificar si hay espacio en la sala
+                if (!players.white) {
                     playerColor = 'white';
-                    roomRef.update({
-                        whitePlayer: {
-                            uid: currentUser.uid,
-                            name: userData.name
-                        }
+                    roomRef.child('players/white').set({
+                        uid: currentUser.uid,
+                        name: userData?.name || currentUser.displayName || 'Jugador Anónimo',
+                        joinedAt: Date.now()
                     });
-                } else if (!room.blackPlayer) {
+                } else if (!players.black) {
                     playerColor = 'black';
-                    roomRef.update({
-                        blackPlayer: {
-                            uid: currentUser.uid,
-                            name: userData.name
-                        }
+                    roomRef.child('players/black').set({
+                        uid: currentUser.uid,
+                        name: userData?.name || currentUser.displayName || 'Jugador Anónimo',
+                        joinedAt: Date.now()
                     });
                 } else {
-                    if (room.whitePlayer.uid === currentUser.uid) {
-                        playerColor = 'white';
+                    // Sala llena, solo observar
+                    playerColor = 'observer';
+                    showMessage("Sala llena. Eres un observador.");
+                }
+                
+                // Inicializar el juego si no existe
+                roomRef.child('gameState').once('value', gameSnapshot => {
+                    if (!gameSnapshot.exists()) {
+                        roomRef.child('gameState').set(initialGameState);
+                        roomRef.child('gameInfo').set(initialGameInfo);
                     } else {
-                        playerColor = 'black';
-                    // Invertir el tablero para las negras
-                        chessBoard.style.transform = 'rotate(180deg)';
-                        const squares = chessBoard.querySelectorAll('.square');
-                        squares.forEach(square => {
-                            square.style.transform = 'rotate(180deg)';
+                        gameState = gameSnapshot.val();
+                        roomRef.child('gameInfo').once('value', infoSnapshot => {
+                            gameInfo = infoSnapshot.val();
+                            renderBoard();
+                            updateTurnIndicator();
                         });
                     }
-                }
-                
-                // Inicializar el estado del juego si no existe
-                if (!room.gameState) {
-                    roomRef.update({
-                        gameState: initialGameState,
-                        turn: 'white'
-                    });
-                } else {
-                    gameState = room.gameState;
-                    drawChessboard();
-                    updateTurnIndicator();
-                }
-                
-                // Escuchar cambios en la sala
-                setupRoomListeners();
+                });
             });
         }
 
-        // Configurar listeners para cambios en la sala
-        function setupRoomListeners() {
-            roomRef.on('value', snapshot => {
-                const room = snapshot.val();
-                
-                if (!room) {
-                    // La sala fue eliminada
-                    alert("La sala ha sido eliminada. Redirigiendo...");
-                    window.location.href = 'salas.html';
-                    return;
+        // Abandonar la sala
+        function leaveRoom() {
+            if (playerColor && playerColor !== 'observer') {
+                roomRef.child('players/' + playerColor).remove();
+            }
+            window.location.href = 'salas.html';
+        }
+
+        // Actualizar la UI con los datos de la sala
+        function updateRoomUI(roomData) {
+            // Actualizar nombre de la sala
+            roomNameDisplay.textContent = `Sala: ${roomId}`;
+            
+            // Actualizar información de jugadores
+            if (roomData.players) {
+                if (roomData.players.white) {
+                    whiteNameDisplay.textContent = roomData.players.white.name;
+                    whiteAvatarDisplay.innerHTML = `<i class="fas fa-user"></i>`;
                 }
                 
-                // Actualizar información de jugadores
-                if (room.whitePlayer) {
-                    whiteNameDisplay.textContent = room.whitePlayer.name;
-                    whiteAvatarDisplay.innerHTML = `<i class="fas fa-${room.whitePlayer.avatar || 'user'}"></i>`;
-                }
-                
-                if (room.blackPlayer) {
-                    blackNameDisplay.textContent = room.blackPlayer.name;
-                    blackAvatarDisplay.innerHTML = `<i class="fas fa-${room.blackPlayer.avatar || 'user'}"></i>`;
-                }
-                
-                // Actualizar estado del juego
-                if (room.gameState) {
-                    gameState = room.gameState;
-                    drawChessboard();
-                }
-                
-                // Actualizar turno
-                if (room.turn) {
-                    gameState.turn = room.turn;
-                    updateTurnIndicator();
+                if (roomData.players.black) {
+                    blackNameDisplay.textContent = roomData.players.black.name;
+                    blackAvatarDisplay.innerHTML = `<i class="fas fa-user"></i>`;
                 }
                 
                 // Resaltar jugador activo
-                document.getElementById('white-player').classList.toggle('active', room.turn === 'white');
-                document.getElementById('black-player').classList.toggle('active', room.turn === 'black');
-            });
+                document.getElementById('white-player').classList.toggle('active', 
+                    roomData.gameInfo && roomData.gameInfo.turn === 'white');
+                document.getElementById('black-player').classList.toggle('active', 
+                    roomData.gameInfo && roomData.gameInfo.turn === 'black');
+            }
+            
+            // Actualizar estado del juego
+            if (roomData.gameState) {
+                gameState = roomData.gameState;
+            }
+            
+            if (roomData.gameInfo) {
+                gameInfo = roomData.gameInfo;
+                updateTurnIndicator();
+                updateGameStatus();
+            }
+            
+            renderBoard();
         }
 
-        // Manejar botón de salir
-        leaveBtn.addEventListener('click', () => {
-            if (confirm("¿Estás seguro de que quieres abandonar la sala?")) {
-                // Eliminar al jugador de la sala
-                if (playerColor === 'white') {
-                    roomRef.update({ whitePlayer: null });
-                } else if (playerColor === 'black') {
-                    roomRef.update({ blackPlayer: null });
-                }
-                
-                // Redirigir a salas
-                window.location.href = 'salas.html';
+        // Actualizar indicador de turno
+        function updateTurnIndicator() {
+            if (!gameInfo) return;
+            
+            currentTurnDisplay.textContent = gameInfo.turn === 'white' ? 'Blancas' : 'Negras';
+            
+            // Si es el turno del jugador actual, permitir interacción
+            if (playerColor === gameInfo.turn) {
+                chessBoard.style.opacity = '1';
+                chessBoard.style.cursor = 'pointer';
+            } else {
+                chessBoard.style.opacity = '0.8';
+                chessBoard.style.cursor = 'not-allowed';
             }
-        });
+        }
 
-        // Inicializar la aplicación
-        initApp();
+        // Actualizar estado del juego (jaque, jaque mate, etc.)
+        function updateGameStatus() {
+            gameStatusDisplay.style.display = 'none';
+            
+            if (gameInfo.checkmate) {
+                isGameOver = true;
+                gameStatusDisplay.style.display = 'block';
+                gameStatusDisplay.textContent = `¡Jaque mate! Ganador: ${gameInfo.turn === 'white' ? 'Negras' : 'Blancas'}`;
+                gameStatusDisplay.className = 'status-message status-checkmate';
+            } else if (gameInfo.stalemate) {
+                isGameOver = true;
+                gameStatusDisplay.style.display = 'block';
+                gameStatusDisplay.textContent = '¡Tablas por ahogado!';
+                gameStatusDisplay.className = 'status-message status-stalemate';
+            } else if (gameInfo.check) {
+                gameStatusDisplay.style.display = 'block';
+                gameStatusDisplay.textContent = '¡Jaque!';
+                gameStatusDisplay.className = 'status-message status-check';
+            }
+        }
+
+        // Ofrecer tablas
+        function offerDraw() {
+            showMessage("Ofreciendo tablas...");
+            // Implementar lógica para ofrecer tablas
+        }
+
+        // Rendirse
+        function resign() {
+            if (confirm("¿Estás seguro de que quieres rendirte?")) {
+                isGameOver = true;
+                gameInfo.checkmate = true;
+                gameInfo.turn = playerColor === 'white' ? 'black' : 'white';
+                updateGameState();
+                showMessage("Te has rendido");
+            }
+        }
+
+        // Iniciar la aplicación
+        init();
     </script>
 </body>
 </html>
