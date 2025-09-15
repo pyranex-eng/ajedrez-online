@@ -695,8 +695,40 @@
     for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
             const square = document.createElement('div');
+            
+            // 1. AGREGAR CLASES CSS (FALTANTE)
+            square.classList.add('square');
+            square.classList.add((row + col) % 2 === 0 ? 'dark' : 'light');
+            square.dataset.row = row;
+            square.dataset.col = col;
+
+            // 2. AGREGAR LABELS DE COORDENADAS (FALTANTE)
+            // Para las labels de archivo (a-h)
+            if (row === 7) {
+                const fileLabel = document.createElement('div');
+                fileLabel.classList.add('file-label');
+                // Si es negro, muestra las letras al revés
+                const fileChar = playerColor === 'black' ? 
+                    String.fromCharCode(97 + (7 - col)) : 
+                    String.fromCharCode(97 + col);
+                fileLabel.textContent = fileChar;
+                square.appendChild(fileLabel);
+            }
+
+            // Para las labels de rango (1-8)
+            if (col === 0) {
+                const rankLabel = document.createElement('div');
+                rankLabel.classList.add('rank-label');
+                // Si es negro, muestra los números al revés
+                const rankNum = playerColor === 'black' ? 
+                    row + 1 : 
+                    8 - row;
+                rankLabel.textContent = rankNum;
+                square.appendChild(rankLabel);
+            }
+
             const actualRow = playerColor === 'black' ? 7 - row : row;
-            const actualCol = playerColor === 'black' ? 7 - col : col;
+            const actualCol = col;
             
             // Validar que las coordenadas existen
             if (actualRow < 0 || actualRow >= 8 || actualCol < 0 || actualCol >= 8) {
@@ -704,15 +736,14 @@
                 continue;
             }
 
-            // VALIDACIÓN CRÍTICA: Si la fila es undefined, saltarla
+            // VALIDACIÓN: Si la fila es undefined, saltarla
             if (!gameState[actualRow]) {
                 console.warn('Fila', actualRow, 'es undefined, omitiendo');
                 continue;
             }
             
-            
             const piece = gameState[actualRow][actualCol];
-if (piece && piece !== '') {
+            if (piece && piece !== '') {
                 const pieceElement = document.createElement('div');
                 pieceElement.classList.add('piece');
                 pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
@@ -721,7 +752,6 @@ if (piece && piece !== '') {
             }
             
             square.addEventListener('click', () => handleSquareClick(actualRow, actualCol));
-
             chessBoard.appendChild(square);
         }
     }
