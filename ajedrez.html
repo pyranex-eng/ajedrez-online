@@ -683,6 +683,7 @@
             return legalMoves;
         }
 
+
         function renderBoard() {
     chessBoard.innerHTML = '';
     
@@ -1038,6 +1039,15 @@ if (piece && piece !== null && piece !== undefined) {
                         const usersSnapshot = await usersRef.once('value');
                         const allUsers = usersSnapshot.val();
                         renderPlayers(players, allUsers);
+                        
+                        console.log('=== DEBUG GAMESTATE ===');
+console.log('GameState recibido:', gameState);
+console.log('Longitud de gameState (filas):', gameState.length);
+for (let i = 0; i < gameState.length; i++) {
+    console.log('Fila', i, ':', gameState[i], 'longitud:', gameState[i] ? gameState[i].length : 'undefined');
+}
+console.log('PlayerColor:', playerColor);
+console.log('========================');
                         
                         renderBoard();
                         renderGameStatus();
