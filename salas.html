@@ -462,7 +462,6 @@
                     
                     const myPlayerRef = roomRef.child('players');
                     
-                    // Comprobamos si el jugador de color blanco ya existe para asignar el color negro.
                     const playerColor = players.white ? 'black' : 'white';
                     
                     const playerUpdate = {
@@ -472,8 +471,41 @@
                         online: true
                     };
                     
-                    // La corrección es aquí. Ahora se añade el jugador directamente al nodo del color correcto.
                     await myPlayerRef.child(playerColor).set(playerUpdate);
+
+                    if (!roomData.gameState) {
+                        const initialGameState = [
+                            ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+                            ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+                            [null, null, null, null, null, null, null, null],
+                            [null, null, null, null, null, null, null, null],
+                            [null, null, null, null, null, null, null, null],
+                            [null, null, null, null, null, null, null, null],
+                            ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+                            ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+                        ];
+                        
+                        const initialGameInfo = {
+                            turn: 'white',
+                            canWhiteKingSideCastle: true,
+                            canWhiteQueenSideCastle: true,
+                            canBlackKingSideCastle: true,
+                            canBlackQueenSideCastle: true,
+                            enPassantTarget: null,
+                            halfMoveClock: 0,
+                            fullMoveNumber: 1,
+                            check: false,
+                            checkmate: false,
+                            stalemate: false,
+                            whiteCaptured: [],
+                            blackCaptured: []
+                        };
+                        
+                        await roomRef.update({
+                            gameState: initialGameState,
+                            gameInfo: initialGameInfo
+                        });
+                    }
                     
                     window.location.href = `ajedrez.html?room=${roomId}`;
                 }

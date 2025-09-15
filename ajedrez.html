@@ -684,66 +684,48 @@
         }
 
         function renderBoard() {
-    chessBoard.innerHTML = '';
-    
-    // Crea una copia del tablero para no modificar el original
-    let boardToRender = JSON.parse(JSON.stringify(gameState));
-
-    // Si el jugador es "black", invierte el tablero para su perspectiva
-    if (playerColor === 'black') {
-        boardToRender = boardToRender.reverse(); // Invierte el orden de las filas
-        boardToRender = boardToRender.map(row => row.reverse()); // Invierte el orden de las piezas en cada fila
-    }
-
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-            const square = document.createElement('div');
+            chessBoard.innerHTML = '';
+            const boardToRender = (playerColor === 'black' ? gameState.slice().reverse() : gameState);
             
-            // Lógica para determinar el color de la casilla
-            const isLight = (row + col) % 2 === 0;
-            square.classList.add('square', isLight ? 'light' : 'dark');
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.classList.add('square');
+                    square.classList.add((row + col) % 2 === 0 ? 'dark' : 'light');
+                    square.dataset.row = row;
+                    square.dataset.col = col;
 
-            // Agrega las coordenadas de la casilla como data-attributes
-            square.dataset.row = row;
-            square.dataset.col = col;
+                    if (row === 7) {
+                        const fileLabel = document.createElement('div');
+                        fileLabel.classList.add('file-label');
+                        fileLabel.textContent = String.fromCharCode(97 + col);
+                        square.appendChild(fileLabel);
+                    }
+                    if (col === 0) {
+                        const rankLabel = document.createElement('div');
+                        rankLabel.classList.add('rank-label');
+                        rankLabel.textContent = 8 - row;
+                        square.appendChild(rankLabel);
+                    }
+                    
+                    const effectiveRow = playerColor === 'black' ? 7 - row : row;
+                    const effectiveCol = playerColor === 'black' ? 7 - col : col;
+                    
+                    const piece = gameState[effectiveRow][effectiveCol];
+                    if (piece) {
+                        const pieceElement = document.createElement('div');
+                        pieceElement.classList.add('piece');
+                        pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
+                        pieceElement.textContent = pieceSymbols[piece];
+                        square.appendChild(pieceElement);
+                    }
+                    
+                    square.addEventListener('click', () => handleSquareClick(effectiveRow, effectiveCol));
 
-            // Agrega etiquetas de archivos y rangos para el primer y último jugador (opcional)
-            if (col === 0) {
-                const rankLabel = document.createElement('span');
-                rankLabel.classList.add('rank-label');
-                rankLabel.textContent = playerColor === 'black' ? (row + 1) : (8 - row);
-                square.appendChild(rankLabel);
+                    chessBoard.appendChild(square);
+                }
             }
-
-            if (row === 7) {
-                const fileLabel = document.createElement('span');
-                fileLabel.classList.add('file-label');
-                const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-                fileLabel.textContent = playerColor === 'black' ? files[7 - col] : files[col];
-                square.appendChild(fileLabel);
-            }
-
-            // Coloca la pieza en la casilla si existe
-            const piece = boardToRender[row][col];
-            if (piece) {
-                const pieceElement = document.createElement('div');
-                pieceElement.classList.add('piece');
-                pieceElement.classList.add(piece[0] === 'w' ? 'white' : 'black');
-                pieceElement.textContent = pieceSymbols[piece];
-                square.appendChild(pieceElement);
-            }
-            
-            // Agrega el evento de clic a la casilla
-            square.addEventListener('click', () => {
-                const actualRow = playerColor === 'black' ? 7 - row : row;
-                const actualCol = playerColor === 'black' ? 7 - col : col;
-                handleSquareClick(actualRow, actualCol);
-            });
-
-            chessBoard.appendChild(square);
         }
-    }
-}
         
         function handleSquareClick(row, col) {
             if (isGameOver || gameInfo.turn !== playerColor) {
@@ -1013,74 +995,78 @@
         }
         
         auth.onAuthStateChanged(async user => {
-    if (user) {
-        // Obtenemos el ID de la sala de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const roomId = urlParams.get('room');
-        if (!roomId) {
-            window.location.href = 'salas.html';
-            return;
-        }
+            if (user) {
+                currentUser = user;
+                const userSnapshot = await usersRef.child(user.uid).once('value');
+                userData = userSnapshot.val();
 
-        const roomRef = database.ref('rooms/' + roomId);
+                if (!userData) {
+                    alert('Datos de usuario no encontrados. Redirigiendo a salas...');
+                    window.location.href = 'salas.html';
+                    return;
+                }
 
-        roomRef.on('value', async snapshot => {
-            const roomData = snapshot.val();
-            if (roomData) {
-                // Asignar colores de forma segura
-                if (!playerColor) {
-                    if (!roomData.players) {
-                        // Jugador 1, crea el estado inicial
-                        await roomRef.child('players/player1').set(user.uid);
-                        await roomRef.child('players/player1Color').set('white');
-                        await roomRef.child('gameState').set(initialGameState);
-                        await roomRef.child('gameInfo').set(initialGameInfo);
-                        playerColor = 'white';
-                    } else if (!roomData.players.player2 && roomData.players.player1 !== user.uid) {
-                        // Jugador 2, se une
-                        await roomRef.child('players/player2').set(user.uid);
-                        await roomRef.child('players/player2Color').set('black');
-                        playerColor = 'black';
-                    } else if (roomData.players.player1 === user.uid) {
-                        playerColor = roomData.players.player1Color;
-                    } else if (roomData.players.player2 === user.uid) {
-                        playerColor = roomData.players.player2Color;
+                roomRef.on('value', async snapshot => {
+                    const roomData = snapshot.val();
+                    if (roomData) {
+                        const players = roomData.players;
+                        
+                        if (players.white && players.white.uid === user.uid) {
+                            playerColor = 'white';
+                        } else if (players.black && players.black.uid === user.uid) {
+                            playerColor = 'black';
+                        } else {
+                            if (!playerColor) {
+                                alert('No eres parte de esta sala. Redirigiendo...');
+                                window.location.href = 'salas.html';
+                                return;
+                            }
+                        }
+
+                        // Ensure gameState exists and initialize if not
+                        if (roomData.gameState) {
+                            gameState = roomData.gameState;
+                        } else {
+                            gameState = initialGameState;
+                        }
+                        
+                        // Ensure gameInfo exists and initialize if not
+                        if (roomData.gameInfo) {
+                            gameInfo = roomData.gameInfo;
+                        } else {
+                            gameInfo = initialGameInfo;
+                        }
+                        
+                        const usersSnapshot = await usersRef.once('value');
+                        const allUsers = usersSnapshot.val();
+                        renderPlayers(players, allUsers);
+                        
+                        renderBoard();
+                        renderGameStatus();
+                        renderCapturedPieces(roomData.gameInfo);
+                        
+                        roomNameDisplay.textContent = `Sala: ${roomData.name}`;
+
+                    } else {
+                        alert('La sala ha sido eliminada por otro jugador. Redirigiendo a salas...');
+                        window.location.href = 'salas.html';
                     }
-                }
+                });
 
-                // Actualizar las variables globales del juego con los datos de Firebase
-                if (roomData.gameState && roomData.gameInfo) {
-                    gameState = roomData.gameState;
-                    gameInfo = roomData.gameInfo;
-                }
-                
-                // Renderizar el tablero y el estado del juego
                 if (playerColor) {
-                    renderBoard();
-                    renderGameStatus();
-                    renderCapturedPieces(gameInfo);
-                    updateCurrentTurnIndicator();
+                    const myPlayerRef = roomRef.child('players');
+                    myPlayerRef.child(playerColor).onDisconnect().update({ online: false })
+                        .then(() => {
+                            console.log('onDisconnect establecido para la sala.');
+                        })
+                        .catch(error => {
+                            console.error('Error estableciendo onDisconnect:', error);
+                        });
                 }
-
             } else {
-                // La sala no existe, redirigir
-                alert('La sala ya no existe.');
-                window.location.href = 'salas.html';
+                window.location.href = 'index.html';
             }
         });
-
-        // Configurar el onDisconnect para limpiar la sala si el último jugador se va
-        const userRoomRef = database.ref('rooms/' + roomId + '/players/' + user.uid);
-        userRoomRef.onDisconnect().remove().then(() => {
-            console.log('onDisconnect establecido para el jugador');
-        }).catch(error => {
-            console.error('Error estableciendo onDisconnect:', error);
-        });
-        
-    } else {
-        window.location.href = 'index.html';
-    }
-});
 
         function renderCapturedPieces(gameInfo) {
             whiteCapturedList.innerHTML = gameInfo.whiteCaptured.map(p => `<span class="captured-piece black">${pieceSymbols[p]}</span>`).join('');
