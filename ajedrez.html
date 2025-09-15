@@ -1123,8 +1123,8 @@ console.log('========================');
     const whiteCaptured = gameInfo.whiteCaptured || [];
     const blackCaptured = gameInfo.blackCaptured || [];
 
-    whiteCapturedList.innerHTML = gameInfo.whiteCaptured.map(p => `<span class="captured-piece black">${pieceSymbols[p]}</span>`).join('');
-    blackCapturedList.innerHTML = gameInfo.blackCaptured.map(p => `<span class="captured-piece white">${pieceSymbols[p]}</span>`).join('');
+    whiteCapturedList.innerHTML = whiteCaptured.map(p => `<span class="captured-piece black">${pieceSymbols[p]}</span>`).join('');
+    blackCapturedList.innerHTML = blackCaptured.map(p => `<span class="captured-piece white">${pieceSymbols[p]}</span>`).join('');
 }
 
         leaveBtn.addEventListener('click', () => {
