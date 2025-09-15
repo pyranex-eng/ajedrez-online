@@ -686,30 +686,28 @@
         function renderBoard() {
     chessBoard.innerHTML = '';
     
+    // Validación crítica: asegurarse que gameState tiene la estructura correcta
+    if (!gameState || gameState.length !== 8) {
+        console.error('gameState inválido:', gameState);
+        return;
+    }
+    
     for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
-            const square = document.createElement('div');
-            square.classList.add('square');
-            square.classList.add((row + col) % 2 === 0 ? 'dark' : 'light');
-            square.dataset.row = row;
-            square.dataset.col = col;
-
-            if (row === 7) {
-                const fileLabel = document.createElement('div');
-                fileLabel.classList.add('file-label');
-                fileLabel.textContent = String.fromCharCode(97 + col);
-                square.appendChild(fileLabel);
-            }
-            if (col === 0) {
-                const rankLabel = document.createElement('div');
-                rankLabel.classList.add('rank-label');
-                rankLabel.textContent = 8 - row;
-                square.appendChild(rankLabel);
-            }
-            
-            // CALCULAR COORDENADAS REALES - ESTAS SON LAS LÍNEAS IMPORTANTES
             const actualRow = playerColor === 'black' ? 7 - row : row;
             const actualCol = playerColor === 'black' ? 7 - col : col;
+            
+            // Validar que las coordenadas existen
+            if (actualRow < 0 || actualRow >= 8 || actualCol < 0 || actualCol >= 8) {
+                console.error('Coordenadas inválidas:', actualRow, actualCol);
+                continue;
+            }
+            
+            // Validar que la fila existe
+            if (!gameState[actualRow]) {
+                console.error('Fila undefined:', actualRow, 'en gameState:', gameState);
+                continue;
+            }
             
             const piece = gameState[actualRow][actualCol];
 if (piece && piece !== null && piece !== undefined) {
