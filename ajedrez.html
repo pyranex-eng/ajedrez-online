@@ -612,22 +612,23 @@
             }
             
             // Knight moves
-            if (type === 'n') {
-                const knightMoves = [
-                    [-2, -1], [-2, 1], [-1, -2], [-1, 2], 
-                    [1, -2], [1, 2], [2, -1], [2, 1]
-                ];
-                for (let [dr, dc] of knightMoves) {
-                    const r = row + dr;
-                    const c = col + dc;
-                    if (r >= 0 && r < 8 && c >= 0 && c < 8) {
-                        const targetPiece = gameState[r][c];
-                        if (!targetPiece || targetPiece[0] !== color) {
-                            moves.push({row: r, col: c});
-                        }
-                    }
-                }
+if (type === 'n') {
+    const knightMoves = [
+        [-2, -1], [-2, 1], [-1, -2], [-1, 2], 
+        [1, -2], [1, 2], [2, -1], [2, 1]
+    ];
+    for (let [dr, dc] of knightMoves) {
+        const r = row + dr;
+        const c = col + dc;
+        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            const targetPiece = gameState[r][c];
+            // Esta condición permite mover a casillas vacías O capturar piezas oponentes
+            if (!targetPiece || targetPiece[0] !== color) {
+                moves.push({row: r, col: c});
             }
+        }
+    }
+}
             
             // King moves
             if (type === 'k') {
@@ -822,9 +823,13 @@
                     }
                     
                     if (capturedPiece) {
-                        const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
-                        newGameInfo[capturedPath].push(capturedPiece);
-                    }
+    const capturedPath = playerColor === 'white' ? 'whiteCaptured' : 'blackCaptured';
+    // Asegurarse de que el array existe
+    if (!newGameInfo[capturedPath]) {
+        newGameInfo[capturedPath] = [];
+    }
+    newGameInfo[capturedPath].push(capturedPiece);
+}
 
                     // Check for checkmate/stalemate
                     const nextPlayerColor = newGameInfo.turn;
@@ -1114,6 +1119,10 @@ console.log('========================');
         blackCapturedList.innerHTML = '';
         return;
     }
+
+    const whiteCaptured = gameInfo.whiteCaptured || [];
+    const blackCaptured = gameInfo.blackCaptured || [];
+
     whiteCapturedList.innerHTML = gameInfo.whiteCaptured.map(p => `<span class="captured-piece black">${pieceSymbols[p]}</span>`).join('');
     blackCapturedList.innerHTML = gameInfo.blackCaptured.map(p => `<span class="captured-piece white">${pieceSymbols[p]}</span>`).join('');
 }
