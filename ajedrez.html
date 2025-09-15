@@ -834,7 +834,7 @@ if (type === 'n') {
                     // Check for checkmate/stalemate
 const nextPlayerColor = newGameInfo.turn;
 const kingPos = findKing(newGameState, nextPlayerColor[0]);
-const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, playerColor[0]);
+const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, nextPlayerColor === 'white' ? 'b' : 'w');
 
 const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
 
