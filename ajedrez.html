@@ -51,6 +51,7 @@
             flex: 1;
             min-width: 400px;
             max-width: 600px;
+            position: relative;
         }
 
         .chess-board {
@@ -61,16 +62,16 @@
             aspect-ratio: 1/1;
             border: 5px solid #333;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
         }
 
         .square {
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2.5rem;
+            position: relative;
             cursor: pointer;
             transition: all 0.2s;
-            position: relative;
         }
 
         .square.light {
@@ -86,7 +87,7 @@
         }
 
         .square.possible-move {
-            position: relative;
+            background-color: rgba(126, 200, 80, 0.7);
         }
 
         .square.possible-move::after {
@@ -97,9 +98,30 @@
             border-radius: 50%;
             background-color: rgba(0, 0, 0, 0.2);
         }
+        
+        .square.has-piece.possible-move {
+            background-color: rgba(233, 69, 96, 0.7);
+        }
 
         .square.check {
-            background-color: #ff6b6b;
+            background-color: #ff6b6b !important;
+        }
+        
+        .piece-svg {
+            width: 80%;
+            height: 80%;
+        }
+
+        .piece-svg .white-piece {
+            fill: #fff;
+            stroke: #000;
+            stroke-width: 20;
+        }
+
+        .piece-svg .black-piece {
+            fill: #000;
+            stroke: #fff;
+            stroke-width: 20;
         }
 
         .game-info {
@@ -126,6 +148,7 @@
             padding: 10px;
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s;
         }
 
         .player.active {
@@ -197,14 +220,26 @@
         }
 
         .captured-pieces {
+            margin-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding-top: 10px;
+        }
+
+        .captured-pieces h3 {
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: #e94560;
+        }
+        
+        .captured-pieces-list {
             display: flex;
             flex-wrap: wrap;
             gap: 5px;
-            margin-top: 10px;
+            min-height: 24px;
         }
 
         .captured-piece {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             opacity: 0.7;
         }
 
@@ -212,6 +247,7 @@
             position: absolute;
             font-size: 0.7rem;
             color: rgba(0, 0, 0, 0.6);
+            z-index: 10;
         }
 
         .coordinates.file {
@@ -308,13 +344,17 @@
             </div>
             
             <div class="turn-indicator" id="turn-indicator">
-                Turno de: <span id="current-turn">Blancas</span>
+                Turno de: <span id="current-turn">...</span>
             </div>
             
             <div class="captured-pieces">
-                <h3>Piezas capturadas:</h3>
-                <div id="white-captured"></div>
-                <div id="black-captured"></div>
+                <h3>Piezas capturadas (Blancas):</h3>
+                <div class="captured-pieces-list" id="white-captured"></div>
+            </div>
+            
+            <div class="captured-pieces">
+                <h3>Piezas capturadas (Negras):</h3>
+                <div class="captured-pieces-list" id="black-captured"></div>
             </div>
             
             <div class="game-controls">
@@ -351,8 +391,7 @@
 
         // Obtener el ID de la sala desde la URL
         const urlParams = new URLSearchParams(window.location.search);
-        // Aquí está la corrección: usar 'room' en lugar de 'roomId'
-        const roomId = urlParams.get('room') || urlParams.get('roomId');
+        const roomId = urlParams.get('room');
         
         if (!roomId) {
             alert("No se ha especificado una sala. Redirigiendo...");
@@ -361,11 +400,15 @@
 
         // Referencias a la base de datos
         const roomRef = database.ref('rooms/' + roomId);
+        const usersRef = database.ref('users');
+        const statusRef = database.ref('status');
+
         let currentUser = null;
         let userData = null;
         let playerColor = null;
         let selectedPiece = null;
         let possibleMoves = [];
+        let gameState = null;
 
         // Elementos del DOM
         const chessBoard = document.getElementById('chess-board');
@@ -379,6 +422,67 @@
         const leaveBtn = document.getElementById('leave-btn');
         const promotionModal = document.getElementById('promotion-modal');
         const promotionOptions = document.getElementById('promotion-options');
+        const whiteCapturedList = document.getElementById('white-captured');
+        const blackCapturedList = document.getElementById('black-captured');
+
+        // Estado inicial del tablero de ajedrez
+        const initialGameState = [
+            ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+            ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+            ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+        ];
+        
+        // Símbolos de las piezas en SVG
+        const pieceSymbols = {
+            'wk': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="white-piece"><path d="M 22.5,11.62 C 22.5,11.62 27,14.06 27,19 C 27,24 22.5,22.31 22.5,22.31 C 22.5,22.31 18,24 18,19 C 18,14.06 22.5,11.62 22.5,11.62 z M 22.5,22.31 L 22.5,28.75 L 15,28.75 L 15,31.25 L 18,31.25 L 18,34.38 L 27,34.38 L 27,31.25 L 30,31.25 L 30,28.75 L 22.5,28.75 z M 22.5,28.75 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z M 22.5,11.62 C 22.5,11.62 27,14.06 27,19 C 27,24 22.5,22.31 22.5,22.31 C 22.5,22.31 18,24 18,19 C 18,14.06 22.5,11.62 22.5,11.62 z M 22.5,22.31 L 22.5,28.75 L 15,28.75 L 15,31.25 L 18,31.25 L 18,34.38 L 27,34.38 L 27,31.25 L 30,31.25 L 30,28.75 L 22.5,28.75 z M 22.5,28.75 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z"></path></g></svg>`,
+            'wq': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="white-piece"><path d="M 22.5,10 C 22.5,10 27,14 27,18 C 27,22 22.5,20.5 22.5,20.5 C 22.5,20.5 18,22 18,18 C 18,14 22.5,10 22.5,10 z M 22.5,20.5 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z M 22.5,20.5 L 22.5,28.75 L 15,28.75 L 15,31.25 L 18,31.25 L 18,34.38 L 27,34.38 L 27,31.25 L 30,31.25 L 30,28.75 L 22.5,28.75 z"></path></g></svg>`,
+            'wr': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="white-piece"><path d="M 11.25,38.75 L 11.25,36.25 L 33.75,36.25 L 33.75,38.75 L 11.25,38.75 z M 12.5,32.5 L 12.5,28.75 L 32.5,28.75 L 32.5,32.5 L 12.5,32.5 z M 11.25,12.5 L 11.25,10 L 33.75,10 L 33.75,12.5 L 11.25,12.5 z M 12.5,10 L 12.5,12.5 L 12.5,28.75 L 12.5,32.5 L 12.5,36.25 L 12.5,38.75 L 12.5,41.25 L 32.5,41.25 L 32.5,38.75 L 32.5,36.25 L 32.5,32.5 L 32.5,28.75 L 32.5,12.5 L 32.5,10 L 12.5,10 z"></path></g></svg>`,
+            'wn': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="white-piece"><path d="M 22.5,11.25 C 22.5,11.25 27,15 27,19 C 27,23 22.5,21.5 22.5,21.5 C 22.5,21.5 18,23 18,19 C 18,15 22.5,11.25 22.5,11.25 z M 22.5,21.5 L 22.5,28.75 L 15,28.75 L 15,31.25 L 18,31.25 L 18,34.38 L 27,34.38 L 27,31.25 L 30,31.25 L 30,28.75 L 22.5,28.75 z M 22.5,28.75 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z"></path></g></svg>`,
+            'wb': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="white-piece"><path d="M 22.5,11.25 C 22.5,11.25 27,15 27,19 C 27,23 22.5,21.5 22.5,21.5 C 22.5,21.5 18,23 18,19 C 18,15 22.5,11.25 22.5,11.25 z M 22.5,21.5 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z"></path></g></svg>`,
+            'wp': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="white-piece"><path d="M 22.5,11.25 C 22.5,11.25 27,15 27,19 C 27,23 22.5,21.5 22.5,21.5 C 22.5,21.5 18,23 18,19 C 18,15 22.5,11.25 22.5,11.25 z M 22.5,21.5 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z"></path></g></svg>`,
+            'bk': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="black-piece"><path d="M 22.5,11.62 C 22.5,11.62 27,14.06 27,19 C 27,24 22.5,22.31 22.5,22.31 C 22.5,22.31 18,24 18,19 C 18,14.06 22.5,11.62 22.5,11.62 z M 22.5,22.31 L 22.5,28.75 L 15,28.75 L 15,31.25 L 18,31.25 L 18,34.38 L 27,34.38 L 27,31.25 L 30,31.25 L 30,28.75 L 22.5,28.75 z M 22.5,28.75 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z M 22.5,11.62 C 22.5,11.62 27,14.06 27,19 C 27,24 22.5,22.31 22.5,22.31 C 22.5,22.31 18,24 18,19 C 18,14.06 22.5,11.62 22.5,11.62 z M 22.5,22.31 L 22.5,28.75 L 15,28.75 L 15,31.25 L 18,31.25 L 18,34.38 L 27,34.38 L 27,31.25 L 30,31.25 L 30,28.75 L 22.5,28.75 z M 22.5,28.75 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z"></path></g></svg>`,
+            'bq': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="black-piece"><path d="M 22.5,10 C 22.5,10 27,14 27,18 C 27,22 22.5,20.5 22.5,20.5 C 22.5,20.5 18,22 18,18 C 18,14 22.5,10 22.5,10 z M 22.5,20.5 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z M 22.5,20.5 L 22.5,28.75 L 15,28.75 L 15,31.25 L 18,31.25 L 18,34.38 L 27,34.38 L 27,31.25 L 30,31.25 L 30,28.75 L 22.5,28.75 z"></path></g></svg>`,
+            'br': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="black-piece"><path d="M 11.25,38.75 L 11.25,36.25 L 33.75,36.25 L 33.75,38.75 L 11.25,38.75 z M 12.5,32.5 L 12.5,28.75 L 32.5,28.75 L 32.5,32.5 L 12.5,32.5 z M 11.25,12.5 L 11.25,10 L 33.75,10 L 33.75,12.5 L 11.25,12.5 z M 12.5,10 L 12.5,12.5 L 12.5,28.75 L 12.5,32.5 L 12.5,36.25 L 12.5,38.75 L 12.5,41.25 L 32.5,41.25 L 32.5,38.75 L 32.5,36.25 L 32.5,32.5 L 32.5,28.75 L 32.5,12.5 L 32.5,10 L 12.5,10 z"></path></g></svg>`,
+            'bn': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="black-piece"><path d="M 22.5,11.25 C 22.5,11.25 27,15 27,19 C 27,23 22.5,21.5 22.5,21.5 C 22.5,21.5 18,23 18,19 C 18,15 22.5,11.25 22.5,11.25 z M 22.5,21.5 L 22.5,28.75 L 15,28.75 L 15,31.25 L 18,31.25 L 18,34.38 L 27,34.38 L 27,31.25 L 30,31.25 L 30,28.75 L 22.5,28.75 z M 22.5,28.75 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z"></path></g></svg>`,
+            'bb': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="black-piece"><path d="M 22.5,11.25 C 22.5,11.25 27,15 27,19 C 27,23 22.5,21.5 22.5,21.5 C 22.5,21.5 18,23 18,19 C 18,15 22.5,11.25 22.5,11.25 z M 22.5,21.5 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z"></path></g></svg>`,
+            'bp': `<svg class="piece-svg" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg"><g class="black-piece"><path d="M 22.5,11.25 C 22.5,11.25 27,15 27,19 C 27,23 22.5,21.5 22.5,21.5 C 22.5,21.5 18,23 18,19 C 18,15 22.5,11.25 22.5,11.25 z M 22.5,21.5 L 22.5,38.75 L 11.25,38.75 L 11.25,41.25 L 33.75,41.25 L 33.75,38.75 L 22.5,38.75 z"></path></g></svg>`
+        };
+
+        // Reglas del juego (lógica simplificada para el ejemplo)
+        function getPossibleMoves(row, col) {
+            // Lógica de movimiento de piezas (simplificada)
+            const piece = gameState[row][col];
+            if (!piece || piece[0] !== playerColor[0]) {
+                return [];
+            }
+            
+            const moves = [];
+            // Ejemplo de movimiento de peón blanco
+            if (piece === 'wp') {
+                if (row > 0 && !gameState[row - 1][col]) {
+                    moves.push({ row: row - 1, col: col });
+                }
+            }
+            // Puedes agregar la lógica para todas las piezas aquí
+            return moves;
+        }
+
+        // Obtener icono de avatar
+        function getAvatarIcon(avatarName) {
+            const icons = {
+                'avatar1': 'fa-chess-king',
+                'avatar2': 'fa-chess-queen',
+                'avatar3': 'fa-chess-knight',
+                'avatar4': 'fa-chess-bishop',
+                'avatar5': 'fa-chess-pawn',
+            };
+            return icons[avatarName] || 'fa-user';
+        }
 
         // Inicializar el juego
         function initGame() {
@@ -386,8 +490,20 @@
                 if (user) {
                     currentUser = user;
                     
+                    // Marcar usuario como online en la base de datos y configurar onDisconnect
+                    statusRef.child(user.uid).set({
+                        online: true,
+                        lastChanged: firebase.database.ServerValue.TIMESTAMP
+                    }).then(() => {
+                        // Si el usuario se desconecta, marcarlo como offline
+                        statusRef.child(user.uid).onDisconnect().set({
+                            online: false,
+                            lastChanged: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    });
+
                     // Obtener datos del usuario
-                    database.ref('users/' + user.uid).once('value').then((snapshot) => {
+                    usersRef.child(user.uid).once('value').then((snapshot) => {
                         userData = snapshot.val();
                         
                         // Escuchar cambios en la sala
@@ -399,6 +515,10 @@
                                 return;
                             }
                             
+                            // Asignar colores a los jugadores si es necesario
+                            assignPlayerColors(roomData.players);
+
+                            // Actualizar la interfaz del juego
                             updateGameUI(roomData);
                         });
                     });
@@ -407,13 +527,28 @@
                 }
             });
         }
+        
+        function assignPlayerColors(players) {
+            const playerIds = Object.keys(players);
+            if (playerIds.length === 2) {
+                // Si la sala está llena, asignar colores si no están definidos
+                const player1 = players[playerIds[0]];
+                const player2 = players[playerIds[1]];
+                
+                if (!player1.color && !player2.color) {
+                    const whiteUid = playerIds[Math.floor(Math.random() * playerIds.length)];
+                    const blackUid = playerIds.find(uid => uid !== whiteUid);
+                    
+                    roomRef.child(`players/${whiteUid}/color`).set('white');
+                    roomRef.child(`players/${blackUid}/color`).set('black');
+                }
+            }
+        }
 
         // Actualizar la interfaz con los datos del juego
         function updateGameUI(roomData) {
-            // Actualizar nombre de sala
             roomNameDisplay.textContent = `Sala: ${roomData.name}`;
             
-            // Actualizar información de jugadores
             const players = roomData.players || {};
             const whitePlayer = Object.values(players).find(p => p.color === 'white');
             const blackPlayer = Object.values(players).find(p => p.color === 'black');
@@ -422,24 +557,30 @@
                 whiteNameDisplay.textContent = whitePlayer.username;
                 whiteAvatarDisplay.innerHTML = `<i class="fas ${getAvatarIcon(whitePlayer.avatar)}"></i>`;
                 document.getElementById('white-player').classList.toggle('active', roomData.turn === 'white');
+            } else {
+                 whiteNameDisplay.textContent = 'Esperando jugador...';
+                 whiteAvatarDisplay.innerHTML = `<i class="fas fa-user"></i>`;
+                 document.getElementById('white-player').classList.remove('active');
             }
             
             if (blackPlayer) {
                 blackNameDisplay.textContent = blackPlayer.username;
                 blackAvatarDisplay.innerHTML = `<i class="fas ${getAvatarIcon(blackPlayer.avatar)}"></i>`;
                 document.getElementById('black-player').classList.toggle('active', roomData.turn === 'black');
+            } else {
+                blackNameDisplay.textContent = 'Esperando jugador...';
+                blackAvatarDisplay.innerHTML = `<i class="fas fa-user"></i>`;
+                document.getElementById('black-player').classList.remove('active');
             }
-            
-            // Determinar el color del jugador actual
+
             if (players[currentUser.uid]) {
                 playerColor = players[currentUser.uid].color;
             }
             
-            // Actualizar turno
             currentTurnDisplay.textContent = roomData.turn === 'white' ? 'Blancas' : 'Negras';
             
-            // Renderizar tablero
-            renderBoard(roomData.gameState);
+            gameState = roomData.gameState || initialGameState;
+            renderBoard(gameState);
         }
 
         // Renderizar el tablero de ajedrez
@@ -454,70 +595,100 @@
                     square.dataset.col = col;
                     
                     // Añadir coordenadas
-                    if (row === 7) {
-                        const fileLabel = document.createElement('span');
-                        fileLabel.className = 'coordinates file';
-                        fileLabel.textContent = String.fromCharCode(97 + col); // a, b, c, ...
-                        square.appendChild(fileLabel);
-                    }
-                    
                     if (col === 0) {
                         const rankLabel = document.createElement('span');
                         rankLabel.className = 'coordinates rank';
-                        rankLabel.textContent = 8 - row; // 8, 7, 6, ...
+                        rankLabel.textContent = 8 - row;
                         square.appendChild(rankLabel);
+                    }
+                    if (row === 7) {
+                        const fileLabel = document.createElement('span');
+                        fileLabel.className = 'coordinates file';
+                        fileLabel.textContent = String.fromCharCode(97 + col);
+                        square.appendChild(fileLabel);
                     }
                     
                     // Añadir pieza si existe
                     const piece = gameState[row][col];
                     if (piece) {
+                        square.classList.add('has-piece');
                         const pieceElement = document.createElement('div');
                         pieceElement.className = 'piece';
-                        pieceElement.innerHTML = getPieceSymbol(piece);
+                        pieceElement.innerHTML = pieceSymbols[piece];
                         pieceElement.dataset.piece = piece;
                         square.appendChild(pieceElement);
                     }
                     
-                    // Añadir evento de clic
                     square.addEventListener('click', () => handleSquareClick(row, col));
                     
                     chessBoard.appendChild(square);
                 }
             }
+            
+            // Resaltar posibles movimientos si hay una pieza seleccionada
+            if (selectedPiece) {
+                const selectedSquare = document.querySelector(`[data-row='${selectedPiece.row}'][data-col='${selectedPiece.col}']`);
+                selectedSquare.classList.add('selected');
+                
+                possibleMoves.forEach(move => {
+                    const moveSquare = document.querySelector(`[data-row='${move.row}'][data-col='${move.col}']`);
+                    moveSquare.classList.add('possible-move');
+                });
+            }
         }
 
         // Manejar clic en una casilla
         function handleSquareClick(row, col) {
-            // Implementar lógica de movimiento de piezas
-            console.log(`Clic en fila ${row}, columna ${col}`);
+            // Si hay una pieza seleccionada
+            if (selectedPiece) {
+                // Comprobar si el clic es un movimiento válido
+                const isPossibleMove = possibleMoves.some(m => m.row === row && m.col === col);
+                if (isPossibleMove) {
+                    // Mover la pieza
+                    movePiece(selectedPiece.row, selectedPiece.col, row, col);
+                }
+                
+                // Deseleccionar la pieza
+                selectedPiece = null;
+                possibleMoves = [];
+                renderBoard(gameState);
+            } else {
+                // Seleccionar una nueva pieza
+                const piece = gameState[row][col];
+                if (piece && piece[0] === playerColor[0]) {
+                    selectedPiece = { row, col };
+                    // Lógica para obtener movimientos válidos (simplificada)
+                    possibleMoves = getPossibleMoves(row, col);
+                    renderBoard(gameState);
+                }
+            }
         }
 
-        // Obtener símbolo de pieza de ajedrez
-        function getPieceSymbol(pieceCode) {
-            const pieces = {
-                'wp': '♙', 'wr': '♖', 'wn': '♘', 'wb': '♗', 'wq': '♕', 'wk': '♔',
-                'bp': '♟', 'br': '♜', 'bn': '♞', 'bb': '♝', 'bq': '♛', 'bk': '♚'
-            };
-            return pieces[pieceCode] || '';
+        // Realizar movimiento
+        function movePiece(fromRow, fromCol, toRow, toCol) {
+            const newGameState = [...gameState.map(r => [...r])];
+            const pieceToMove = newGameState[fromRow][fromCol];
+            const capturedPiece = newGameState[toRow][toCol];
+            
+            // Actualizar la posición de la pieza
+            newGameState[toRow][toCol] = pieceToMove;
+            newGameState[fromRow][fromCol] = null;
+            
+            // Actualizar el estado en la base de datos
+            roomRef.update({
+                gameState: newGameState,
+                turn: playerColor === 'white' ? 'black' : 'white'
+            });
         }
-
-        // Obtener icono de avatar
-        function getAvatarIcon(avatarName) {
-            const icons = {
-                'avatar1': 'fa-chess-king',
-                'avatar2': 'fa-chess-queen',
-                'avatar3': 'fa-chess-knight',
-                'avatar4': 'fa-chess-pawn',
-                'avatar5': 'fa-crown'
-            };
-            return icons[avatarName] || 'fa-user';
-        }
-
+        
         // Evento para abandonar la sala
         leaveBtn.addEventListener('click', () => {
             if (confirm('¿Estás seguro de que quieres abandonar la sala?')) {
                 if (currentUser) {
+                    // Eliminar al jugador de la sala
                     roomRef.child('players/' + currentUser.uid).remove();
+                    // Limpiar la referencia de onDisconnect
+                    statusRef.child(currentUser.uid).onDisconnect().cancel();
                 }
                 window.location.href = 'salas.html';
             }
