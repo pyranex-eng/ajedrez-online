@@ -265,6 +265,35 @@
         .promotion-option.black {
             color: #000;
         }
+/* Tamaño aumentado para PC (pantallas mayores a 768px) */
+@media (min-width: 768px) {
+    .chess-board {
+        grid-template-columns: repeat(8, 70px);
+        grid-template-rows: repeat(8, 70px);
+    }
+    .square {
+        width: 70px;
+        height: 70px;
+    }
+    .piece {
+        font-size: 50px;
+    }
+}
+
+/* Tamaño extra grande para pantallas muy grandes (opcional) */
+@media (min-width: 1200px) {
+    .chess-board {
+        grid-template-columns: repeat(8, 80px);
+        grid-template-rows: repeat(8, 80px);
+    }
+    .square {
+        width: 80px;
+        height: 80px;
+    }
+    .piece {
+        font-size: 60px;
+    }
+}
     </style>
 </head>
 <body>
