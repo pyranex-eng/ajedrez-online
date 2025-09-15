@@ -728,7 +728,7 @@
             }
 
             const actualRow = playerColor === 'black' ? 7 - row : row;
-            const actualCol = col;
+            const actualCol = playerColor === 'black' ? 7 - col : col;
             
             // Validar que las coordenadas existen
             if (actualRow < 0 || actualRow >= 8 || actualCol < 0 || actualCol >= 8) {
@@ -762,23 +762,37 @@
         return;
     }
 
-    const clickedPiece = gameState[row][col];
+    // Convertir coordenadas visuales a coordenadas del tablero
+    const boardRow = playerColor === 'black' ? 7 - row : row;
+    const boardCol = playerColor === 'black' ? 7 - col : col;
+    
+    const clickedPiece = gameState[boardRow][boardCol];
     
     if (selectedPiece) {
-        const move = possibleMoves.find(m => m.row === row && m.col === col);
+        // Convertir selectedPiece a coordenadas del tablero si es necesario
+        const selectedBoardRow = playerColor === 'black' ? 7 - selectedPiece.row : selectedPiece.row;
+        const selectedBoardCol = playerColor === 'black' ? 7 - selectedPiece.col : selectedPiece.col;
+        
+        const move = possibleMoves.find(m => {
+            // Convertir movimientos posibles a coordenadas visuales para comparar
+            const moveVisualRow = playerColor === 'black' ? 7 - m.row : m.row;
+            const moveVisualCol = playerColor === 'black' ? 7 - m.col : m.col;
+            return moveVisualRow === row && moveVisualCol === col;
+        });
+        
         if (move) {
-            const fromRow = selectedPiece.row;
-            const fromCol = selectedPiece.col;
-            const toRow = move.row;
+            const fromRow = selectedBoardRow; // Usar coordenadas del tablero
+            const fromCol = selectedBoardCol;
+            const toRow = move.row; // move ya está en coordenadas del tablero
             const toCol = move.col;
 
             const updates = {};
             const newGameState = JSON.parse(JSON.stringify(gameState));
             let capturedPiece = null;
             
-            // LÓGICA DE MOVIMIENTO Y CAPTURA - REORGANIZADA
+            // LÓGICA DE MOVIMIENTO Y CAPTURA
             if (move.isCastling) {
-                // Enroque - no hay captura en el enroque
+                // Enroque
                 if (move.isCastling === 'kingSide') {
                     newGameState[fromRow][fromCol+2] = newGameState[fromRow][fromCol];
                     newGameState[fromRow][fromCol] = null;
@@ -800,27 +814,27 @@
                 newGameState[capturedPawnRow][toCol] = null;
             }
             else {
-                // Movimiento normal (puede ser captura o no)
+                // Movimiento normal
                 capturedPiece = newGameState[toRow][toCol];
                 newGameState[toRow][toCol] = newGameState[fromRow][fromCol];
                 newGameState[fromRow][fromCol] = null;
             }
 
             const pieceToMove = gameState[fromRow][fromCol];
-            if (pieceToMove[1] === 'p' && (toRow === 0 || toRow === 7)) {
+            if (pieceToMove && pieceToMove[1] === 'p' && (toRow === 0 || toRow === 7)) {
                 promotionPending = { fromRow, fromCol, toRow, toCol, capturedPiece };
                 showPromotionModal(playerColor);
                 return;
             }
             
-            // Update game info and state
+            // Update game info
             const newGameInfo = JSON.parse(JSON.stringify(gameInfo));
             newGameInfo.turn = playerColor === 'white' ? 'black' : 'white';
             newGameInfo.enPassantTarget = null;
-            // INICIALIZAR ARRAYS DE PIEZAS CAPTURADAS (SI NO EXISTEN)
-if (!newGameInfo.whiteCaptured) newGameInfo.whiteCaptured = [];
-if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
             
+            // Inicializar arrays de piezas capturadas
+            if (!newGameInfo.whiteCaptured) newGameInfo.whiteCaptured = [];
+            if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
 
             // Actualizar derechos de enroque
             if (pieceToMove === 'wk' || (pieceToMove === 'wr' && fromCol === 7)) { 
@@ -851,7 +865,8 @@ if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
             const nextPlayerColor = newGameInfo.turn;
             const kingPos = findKing(newGameState, nextPlayerColor[0]);
             if (kingPos) {
-                const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, playerColor[0]);
+                const opponentColor = nextPlayerColor === 'white' ? 'b' : 'w';
+                const kingInCheck = isSquareAttacked(kingPos.row, kingPos.col, newGameState, opponentColor);
                 
                 const hasLegalMoves = getLegalMovesForPlayer(newGameState, nextPlayerColor[0]).length > 0;
                 
@@ -884,16 +899,16 @@ if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
             possibleMoves = [];
             renderBoard();
             if (clickedPiece && clickedPiece[0] === playerColor[0]) {
-                selectedPiece = { row, col };
-                possibleMoves = getPossibleMoves(row, col);
+                selectedPiece = { row, col }; // Guardar coordenadas visuales
+                possibleMoves = getPossibleMoves(boardRow, boardCol); // Pasar coordenadas del tablero
                 renderBoard();
                 highlightPossibleMoves();
             }
         }
     } else {
         if (clickedPiece && clickedPiece[0] === playerColor[0]) {
-            selectedPiece = { row, col };
-            possibleMoves = getPossibleMoves(row, col);
+            selectedPiece = { row, col }; // Guardar coordenadas visuales
+            possibleMoves = getPossibleMoves(boardRow, boardCol); // Pasar coordenadas del tablero
             renderBoard();
             highlightPossibleMoves();
         }
@@ -916,9 +931,8 @@ if (!newGameInfo.blackCaptured) newGameInfo.blackCaptured = [];
 
         function highlightPossibleMoves() {
     for (let move of possibleMoves) {
-        // Solo invertir las filas para el jugador negro, mantener columnas igual
         const effectiveRow = playerColor === 'black' ? 7 - move.row : move.row;
-        const effectiveCol = move.col; // No invertir columnas
+        const effectiveCol = playerColor === 'black' ? 7 - move.col : move.col; // Invertir columnas también
         const square = document.querySelector(`.square[data-row='${effectiveRow}'][data-col='${effectiveCol}']`);
         if (square) {
             square.classList.add('possible-move');
