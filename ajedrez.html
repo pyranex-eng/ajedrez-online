@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ajedrez Online - Partida</title>
+    <title>Ajedrez Online - Salas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -42,544 +42,373 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 1200px;
-        }
-
-        .game-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 30px;
-            width: 100%;
-        }
-
-        .chessboard-container {
-            flex: 1;
-            min-width: 400px;
-            max-width: 500px;
-        }
-
-        .info-panel {
-            flex: 1;
-            min-width: 300px;
-            max-width: 400px;
+            max-width: 800px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            border-radius: 15px;
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
-        .chessboard {
-            width: 100%;
-            height: 0;
-            padding-bottom: 100%;
-            position: relative;
-            border: 10px solid #553c8b;
-            border-radius: 5px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .board {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-        }
-
-        .square {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 2.5rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .square.white { background-color: #f0d9b5; }
-        .square.black { background-color: #b58863; }
-        .square.selected { background-color: #78b9ff; }
-        .square.possible-move { position: relative; }
-        .square.possible-move::after {
-            content: "";
-            position: absolute;
-            width: 30%;
-            height: 30%;
-            background-color: rgba(0, 255, 0, 0.5);
-            border-radius: 50%;
-        }
-
-        .players-display {
+        .user-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .player-info {
+        .user-profile {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .player-avatar-small {
-            width: 40px;
-            height: 40px;
+        .user-avatar {
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background-color: #444;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 2rem;
         }
 
-        .vs-text {
-            font-weight: bold;
+        .user-profile-text h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .user-profile-text p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .create-room {
+            width: 100%;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .create-room input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            outline: none;
+        }
+        
+        .create-room input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #e94560;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #c9304a;
+        }
+
+        .room-list-container {
+            width: 100%;
+        }
+
+        .room-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .room-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        .room-item:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .room-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .room-details h3 {
+            font-size: 1.1rem;
+        }
+
+        .room-details p {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .room-details .players-info {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .room-item .btn-join {
+            background-color: #7289da;
+        }
+
+        .room-item .btn-join:hover {
+            background-color: #5b6fb8;
+        }
+
+        .btn-signout {
+            background-color: transparent;
+            border: 1px solid #e94560;
             color: #e94560;
         }
 
-        .captured-pieces div {
-            margin-top: 15px;
-        }
-        .captured {
-            min-height: 30px;
-            font-size: 1.5rem;
+        .btn-signout:hover {
+            background-color: #e94560;
+            color: #fff;
         }
 
-        .move-history {
-            margin-top: 20px;
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
         }
 
-        .move-list {
-            list-style: none;
-            max-height: 200px;
-            overflow-y: auto;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .move-list li {
-            margin-bottom: 5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        @media (max-width: 850px) {
-            .game-container { flex-direction: column; align-items: center; }
-            .chessboard-container, .info-panel { max-width: 100%; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-
-    <div id="game-section" class="section-container active">
-        <header>
-            <h1>Partida en Curso</h1>
-            <p id="game-info">Esperando a otro jugador...</p>
-        </header>
-
-        <div class="game-container">
-            <div class="chessboard-container">
-                <div class="chessboard">
-                    <div class="board" id="chessboard">
-                    </div>
+    <header>
+        <h1>Salas de Ajedrez</h1>
+    </header>
+    <div class="section-container">
+        <div class="user-info">
+            <div class="user-profile">
+                <div class="user-avatar" id="user-avatar"></div>
+                <div class="user-profile-text">
+                    <h2>Bienvenido, <span id="username-display"></span></h2>
+                    <p id="player-status"></p>
                 </div>
             </div>
-
-            <div class="info-panel">
-                <div class="players-display">
-                    <div class="player-info white-player">
-                        <span class="player-avatar-small" id="white-player-avatar"></span>
-                        <span class="player-name" id="white-player-name">Esperando...</span>
-                    </div>
-                    <span class="vs-text">vs</span>
-                    <div class="player-info black-player">
-                        <span class="player-name" id="black-player-name">Esperando...</span>
-                        <span class="player-avatar-small" id="black-player-avatar"></span>
-                    </div>
-                </div>
-
-                <div class="status">
-                    <h2>Estado: <span id="game-status">Esperando...</span></h2>
-                    <p>Turno: <span id="current-turn"></span></p>
-                    <p id="player-color-text"></p>
-                </div>
-
-                <div class="captured-pieces">
-                    <div>
-                        <p>Piezas capturadas por negras:</p>
-                        <div class="captured" id="captured-by-black"></div>
-                    </div>
-                    <div>
-                        <p>Piezas capturadas por blancas:</p>
-                        <div class="captured" id="captured-by-white"></div>
-                    </div>
-                </div>
-
-                <div class="move-history">
-                    <h3>Historial de Movimientos</h3>
-                    <ul class="move-list" id="move-list"></ul>
-                </div>
-
-                <button id="leave-game" style="width:100%; margin-top: 20px;">Salir de la Partida</button>
-            </div>
+            <button class="btn btn-signout" id="signout-btn">Cerrar Sesión</button>
+        </div>
+        
+        <div class="create-room">
+            <input type="text" id="room-name-input" placeholder="Nombre de la nueva sala...">
+            <button class="btn" id="create-room-btn">Crear Sala</button>
+        </div>
+        
+        <div class="room-list-container">
+            <h2>Salas disponibles</h2>
+            <ul class="room-list" id="room-list"></ul>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    
     <script>
-        function getAvatarIcon(avatarName) {
-            const icons = {
-                'avatar1': 'fa-chess-king',
-                'avatar2': 'fa-chess-queen',
-                'avatar3': 'fa-chess-knight',
-                'avatar4': 'fa-chess-bishop',
-                'avatar5': 'fa-chess-pawn'
-            };
-            return icons[avatarName] || 'fa-user';
-        }
-
+        // TU CONFIGURACIÓN DE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyAELxl8vQ3hea6OaD1pwZaoIDUrxY07vwg",
             authDomain: "ajedrez-online-9da63.firebaseapp.com",
-            databaseURL: "https://ajedrez-online-9da63-default-rtdb.firebaseio.com",
             projectId: "ajedrez-online-9da63",
             storageBucket: "ajedrez-online-9da63.firebasestorage.app",
             messagingSenderId: "841079328346",
             appId: "1:841079328346:web:2a2f66f352ee8932ad9263",
             measurementId: "G-ML6HGX08LE"
         };
-        
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
 
-        const boardElement = document.getElementById('chessboard');
-        const gameStatusElement = document.getElementById('game-status');
-        const currentTurnElement = document.getElementById('current-turn');
-        const gameInfoElement = document.getElementById('game-info');
-        const playerColorTextElement = document.getElementById('player-color-text');
-        const moveList = document.getElementById('move-list');
-        const capturedByWhite = document.getElementById('captured-by-white');
-        const capturedByBlack = document.getElementById('captured-by-black');
-        const leaveGameBtn = document.getElementById('leave-game');
+        const database = firebase.database();
+        const auth = firebase.auth();
+        const roomsRef = database.ref('rooms');
+        const usernameDisplay = document.getElementById('username-display');
+        const userAvatarDisplay = document.getElementById('user-avatar');
+        const roomNameInput = document.getElementById('room-name-input');
+        const createRoomBtn = document.getElementById('create-room-btn');
+        const roomListElement = document.getElementById('room-list');
+        const signoutBtn = document.getElementById('signout-btn');
 
         let currentUser = null;
         let userData = null;
-        let currentRoomId = null;
-        let myColor = null;
-        let isMyTurn = false;
 
-        let gameState = [];
-        let selectedPiece = null;
-        let possibleMoves = [];
-        let moveHistory = [];
-        let capturedPieces = { white: [], black: [] };
-        let isWhiteTurn = true;
-        let gameActive = true;
-
-        // Mejorar la función para abandonar la sala
-        leaveGameBtn.addEventListener('click', () => {
-            if (currentRoomId) {
-                const roomRef = database.ref('rooms/' + currentRoomId);
-                
-                // Primero eliminar al jugador
-                roomRef.child('players/' + currentUser.uid).remove().then(() => {
-                    console.log("Jugador abandonó la sala.");
-                    
-                    // Verificar si la sala queda vacía
-                    roomRef.once('value').then(snapshot => {
-                        const roomData = snapshot.val();
-                        if (roomData && roomData.players && Object.keys(roomData.players).length === 0) {
-                            roomRef.remove();
-                            console.log("Sala vacía, eliminada.");
-                        }
-                    });
-                }).catch(error => {
-                    console.error("Error al abandonar la sala:", error);
+        // Función para limpiar la sala al salir
+        function cleanupRoom(roomId, uid) {
+            const roomRef = database.ref('rooms/' + roomId);
+            roomRef.child('players/' + uid).remove()
+                .then(() => {
+                    console.log("Jugador eliminado de la sala.");
+                })
+                .catch(error => {
+                    console.error("Error al eliminar jugador de la sala:", error);
                 });
-            }
-            window.location.href = 'salas.html';
-        });
-
-        // Detectar cuando el usuario cierra la pestaña/navegador
-        window.addEventListener('beforeunload', function() {
-            if (currentRoomId && currentUser) {
-                const roomRef = database.ref('rooms/' + currentRoomId);
-                roomRef.child('players/' + currentUser.uid).remove();
-                
-                // Verificar si la sala queda vacía
-                roomRef.once('value').then(snapshot => {
-                    const roomData = snapshot.val();
-                    if (roomData && roomData.players && Object.keys(roomData.players).length === 0) {
-                        roomRef.remove();
-                    }
-                });
-            }
-        });
-
+        }
+        
+        // Escucha si el usuario está conectado
         auth.onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
-                const urlParams = new URLSearchParams(window.location.search);
-                currentRoomId = urlParams.get('room');
-                if (currentRoomId) {
-                    loadUserDataAndStartGame();
-                } else {
-                    window.location.href = 'salas.html';
-                }
+                const userRef = database.ref('users/' + user.uid);
+                userRef.once('value').then((snapshot) => {
+                    userData = snapshot.val();
+                    if (userData) {
+                        usernameDisplay.textContent = userData.username;
+                        userAvatarDisplay.innerHTML = `<i class="fas fa-user-circle"></i>`; // Icono por defecto
+
+                        // Escuchar cambios en las salas
+                        roomsRef.on('value', (snapshot) => {
+                            const roomsData = snapshot.val();
+                            renderRooms(roomsData);
+                        });
+                    } else {
+                        alert("Datos de usuario no encontrados. Redirigiendo al login.");
+                        auth.signOut();
+                    }
+                });
             } else {
                 window.location.href = 'login-registro.html';
             }
         });
-        
-        function loadUserDataAndStartGame() {
-            const userRef = database.ref('users/' + currentUser.uid);
-            userRef.once('value').then((snapshot) => {
-                if (snapshot.exists()) {
-                    userData = snapshot.val();
-                    startRoomListener(currentRoomId);
-                } else {
-                    auth.signOut();
-                }
-            });
-        }
 
-        function startRoomListener(roomId) {
-            const roomRef = database.ref('rooms/' + roomId);
-            roomRef.on('value', (snapshot) => {
-                const room = snapshot.val();
-                // Verificar si la sala existe y tiene jugadores
-                if (!room || !room.players || Object.keys(room.players).length === 0) {
-                    console.log("La sala ha sido abandonada, saliendo...");
-                    window.location.href = 'salas.html';
-                    return;
-                }
+        createRoomBtn.addEventListener('click', () => {
+            const roomName = roomNameInput.value.trim();
+            if (roomName) {
+                const newRoomRef = roomsRef.push();
+                const newRoomId = newRoomRef.key;
                 
-                const players = room.players;
-                const playerUids = Object.keys(players);
+                const roomData = {
+                    name: roomName,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP,
+                    players: {
+                        [currentUser.uid]: {
+                            username: userData.username,
+                            color: 'white' // El creador de la sala es blanco por defecto
+                        }
+                    },
+                    gameState: createInitialGameState(),
+                    turn: 'white'
+                };
                 
-                // Lógica para mostrar los jugadores
-                const player1 = players[playerUids[0]];
-                const player2 = playerUids.length === 2 ? players[playerUids[1]] : null;
-
-                // Actualizar información de jugadores
-                document.getElementById('white-player-name').textContent = player1.username;
-                document.getElementById('white-player-avatar').innerHTML = `<i class="fas ${getAvatarIcon(player1.avatar)}"></i>`;
-                
-                if (player2) {
-                    document.getElementById('black-player-name').textContent = player2.username;
-                    document.getElementById('black-player-avatar').innerHTML = `<i class="fas ${getAvatarIcon(player2.avatar)}"></i>`;
-                    gameInfoElement.textContent = `${player1.username} vs ${player2.username}`;
-                } else {
-                    document.getElementById('black-player-name').textContent = 'Esperando...';
-                    document.getElementById('black-player-avatar').innerHTML = '<i class="fas fa-question"></i>';
-                    gameInfoElement.textContent = `Esperando a otro jugador... (${playerUids.length}/2)`;
-                }
-                
-                // Asignar color al jugador actual si aún no tiene
-                if (!myColor && players[currentUser.uid]) {
-                    myColor = players[currentUser.uid].color;
-                    playerColorTextElement.textContent = `Eres el jugador: ${myColor === 'white' ? 'Blanco' : 'Negro'}`;
-                }
-                
-                // Actualizar estado del juego
-                if (room.gameState) {
-                    gameState = room.gameState;
-                    moveHistory = room.moveHistory || [];
-                    capturedPieces = room.capturedPieces || { white: [], black: [] };
-                    isWhiteTurn = room.turn === 'white';
-                    
-                    isMyTurn = myColor === room.turn;
-                    gameStatusElement.textContent = isMyTurn ? 'Tu turno' : 'Turno del oponente';
-                    currentTurnElement.textContent = isWhiteTurn ? 'Blancas' : 'Negras';
-                    
-                    renderBoard();
-                    renderMoveHistory();
-                    renderCapturedPieces();
-                } else if (playerUids.length === 2) {
-                    // Inicializar juego cuando se unen dos jugadores
-                    roomRef.update({
-                        gameState: createInitialGameState(),
-                        moveHistory: [],
-                        capturedPieces: { white: [], black: [] },
-                        turn: 'white'
+                newRoomRef.set(roomData)
+                    .then(() => {
+                        window.location.href = `ajedrez.html?roomId=${newRoomId}`;
+                    })
+                    .catch(error => {
+                        console.error("Error al crear la sala:", error);
                     });
-                }
-            });
-        }
-
-        boardElement.addEventListener('click', (e) => {
-            if (!gameActive || !isMyTurn) return;
-
-            const square = e.target.closest('.square');
-            if (!square) return;
-
-            const row = parseInt(square.dataset.row);
-            const col = parseInt(square.dataset.col);
-            const piece = gameState[row][col];
-            const myPiece = piece && ((myColor === 'white' && piece[0] === 'w') || (myColor === 'black' && piece[0] === 'b'));
-
-            if (selectedPiece) {
-                const isValidMove = possibleMoves.some(move => move[0] === row && move[1] === col);
-                if (isValidMove) {
-                    const from = { row: selectedPiece.row, col: selectedPiece.col };
-                    const to = { row, col };
-                    
-                    const roomRef = database.ref('rooms/' + currentRoomId);
-                    
-                    const targetPiece = gameState[to.row][to.col];
-                    if (targetPiece) {
-                         const capturedPlayer = targetPiece[0] === 'w' ? 'white' : 'black';
-                         if (!capturedPieces[capturedPlayer]) capturedPieces[capturedPlayer] = [];
-                         capturedPieces[capturedPlayer].push(targetPiece);
-                    }
-                    
-                    gameState[to.row][to.col] = gameState[from.row][from.col];
-                    gameState[from.row][from.col] = '';
-
-                    const newTurn = isWhiteTurn ? 'black' : 'white';
-
-                    roomRef.update({
-                        gameState: gameState,
-                        turn: newTurn,
-                        moveHistory: [...moveHistory, { from, to, piece: selectedPiece.piece }],
-                        capturedPieces: capturedPieces
-                    }).then(() => {
-                        console.log("Movimiento enviado a Firebase.");
-                    }).catch(error => {
-                        console.error("Error al enviar el movimiento: " + error.message);
-                    });
-                }
-                selectedPiece = null;
-                possibleMoves = [];
-                updateBoardStyles();
-            } else if (myPiece) {
-                selectedPiece = { row, col, piece };
-                possibleMoves = calculatePossibleMoves(row, col, piece);
-                updateBoardStyles();
+            } else {
+                alert("Por favor, introduce un nombre para la sala.");
             }
         });
 
-        function updateBoardStyles() {
-            document.querySelectorAll('.square').forEach(square => {
-                square.classList.remove('selected', 'possible-move');
-            });
-
-            if (selectedPiece) {
-                const selectedSquare = document.querySelector(`.square[data-row="${selectedPiece.row}"][data-col="${selectedPiece.col}"]`);
-                if (selectedSquare) selectedSquare.classList.add('selected');
+        function renderRooms(rooms) {
+            roomListElement.innerHTML = '';
+            if (!rooms) {
+                roomListElement.innerHTML = '<li>No hay salas disponibles. ¡Sé el primero en crear una!</li>';
+                return;
+            }
+            
+            Object.keys(rooms).forEach(roomId => {
+                const room = rooms[roomId];
+                const playerIds = room.players ? Object.keys(room.players) : [];
+                const playerCount = playerIds.length;
                 
-                possibleMoves.forEach(move => {
-                    const possibleSquare = document.querySelector(`.square[data-row="${move[0]}"][data-col="${move[1]}"]`);
-                    if (possibleSquare) possibleSquare.classList.add('possible-move');
-                });
-            }
-        }
-
-        function renderBoard() {
-            boardElement.innerHTML = '';
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
-                    const square = document.createElement('div');
-                    square.className = `square ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
-                    square.dataset.row = row;
-                    square.dataset.col = col;
-                    
-                    const piece = gameState[row][col];
-                    if (piece) {
-                        square.innerHTML = getChessSymbol(piece);
-                    }
-                    
-                    boardElement.appendChild(square);
-                }
-            }
-        }
-
-        function renderMoveHistory() {
-            moveList.innerHTML = '';
-            moveHistory.forEach((move, index) => {
                 const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${move.piece} de ${String.fromCharCode(97 + move.from.col)}${8 - move.from.row} a ${String.fromCharCode(97 + move.to.col)}${8 - move.to.row}`;
-                moveList.appendChild(li);
+                li.classList.add('room-item');
+
+                const roomDetailsDiv = document.createElement('div');
+                roomDetailsDiv.classList.add('room-details');
+                roomDetailsDiv.innerHTML = `<h3>${room.name}</h3><p>Jugadores: ${playerCount}/2</p>`;
+                
+                li.appendChild(roomDetailsDiv);
+                
+                if (playerCount < 2) {
+                    const joinBtn = document.createElement('button');
+                    joinBtn.textContent = 'Unirse';
+                    joinBtn.classList.add('btn', 'btn-join');
+                    joinBtn.addEventListener('click', () => joinRoom(roomId));
+                    li.appendChild(joinBtn);
+                } else {
+                    const fullSpan = document.createElement('span');
+                    fullSpan.textContent = 'Sala Llena';
+                    li.appendChild(fullSpan);
+                }
+                
+                roomListElement.appendChild(li);
             });
         }
 
-        function renderCapturedPieces() {
-            capturedByWhite.innerHTML = capturedPieces.white.map(piece => getChessSymbol(piece)).join(' ');
-            capturedByBlack.innerHTML = capturedPieces.black.map(piece => getChessSymbol(piece)).join(' ');
+        function joinRoom(roomId) {
+            const roomRef = database.ref('rooms/' + roomId);
+            roomRef.once('value').then(snapshot => {
+                const roomData = snapshot.val();
+                if (roomData && Object.keys(roomData.players).length < 2) {
+                    const playerColor = Object.values(roomData.players)[0].color === 'white' ? 'black' : 'white';
+                    
+                    roomRef.child('players/' + currentUser.uid).set({
+                        username: userData.username,
+                        color: playerColor
+                    }).then(() => {
+                        window.location.href = `ajedrez.html?roomId=${roomId}`;
+                    }).catch(error => {
+                        console.error("Error al unirse a la sala:", error);
+                    });
+                } else {
+                    alert("Esta sala ya está llena.");
+                    // Forzar una re-renderización de la lista de salas
+                    roomsRef.once('value').then(snapshot => renderRooms(snapshot.val()));
+                }
+            });
         }
 
-        function getChessSymbol(piece) {
-            const symbols = {
-                'wp': '♙', 'wn': '♘', 'wb': '♗', 'wr': '♖', 'wq': '♕', 'wk': '♔',
-                'bp': '♟', 'bn': '♞', 'bb': '♝', 'br': '♜', 'bq': '♛', 'bk': '♚'
-            };
-            return symbols[piece] || '';
-        }
+        // Cierre de sesión
+        signoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                console.log("Sesión cerrada.");
+                window.location.href = 'login-registro.html';
+            }).catch(error => {
+                console.error("Error al cerrar sesión:", error);
+            });
+        });
 
+        // Estado inicial del tablero
         function createInitialGameState() {
             return [
-                ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
-                ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
-                ['', '', '', '', '', '', '', ''],
-                ['', '', '', '', '', '', '', ''],
-                ['', '', '', '', '', '', '', ''],
-                ['', '', '', '', '', '', '', ''],
-                ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
-                ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+                ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
+                ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP'],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP'],
+                ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
             ];
         }
-
-        function calculatePossibleMoves(row, col, piece) {
-            const moves = [];
-            const pieceType = piece[1];
-            const pieceColor = piece[0];
-            
-            // Implementación básica de movimientos (solo peones)
-            if (pieceType === 'p') {
-                const direction = pieceColor === 'w' ? -1 : 1;
-                
-                // Movimiento hacia adelante
-                if (row + direction >= 0 && row + direction < 8 && !gameState[row + direction][col]) {
-                    moves.push([row + direction, col]);
-                    
-                    // Primer movimiento (dos casillas)
-                    if ((pieceColor === 'w' && row === 6) || (pieceColor === 'b' && row === 1)) {
-                        if (!gameState[row + 2*direction][col]) {
-                            moves.push([row + 2*direction, col]);
-                        }
-                    }
-                }
-                
-                // Capturas diagonales
-                const captureDirections = [[direction, -1], [direction, 1]];
-                for (const [dRow, dCol] of captureDirections) {
-                    const newRow = row + dRow;
-                    const newCol = col + dCol;
-                    if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-                        const targetPiece = gameState[newRow][newCol];
-                        if (targetPiece && targetPiece[0] !== pieceColor) {
-                            moves.push([newRow, newCol]);
-                        }
-                    }
-                }
-            }
-            
-            return moves;
-        }
-
-        // Inicializar el tablero
-        gameState = createInitialGameState();
-        renderBoard();
     </script>
 </body>
 </html>
