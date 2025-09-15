@@ -1013,78 +1013,74 @@
         }
         
         auth.onAuthStateChanged(async user => {
-            if (user) {
-                currentUser = user;
-                const userSnapshot = await usersRef.child(user.uid).once('value');
-                userData = userSnapshot.val();
+    if (user) {
+        // Obtenemos el ID de la sala de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room');
+        if (!roomId) {
+            window.location.href = 'salas.html';
+            return;
+        }
 
-                if (!userData) {
-                    alert('Datos de usuario no encontrados. Redirigiendo a salas...');
-                    window.location.href = 'salas.html';
-                    return;
-                }
+        const roomRef = database.ref('rooms/' + roomId);
 
-                roomRef.on('value', async snapshot => {
-                    const roomData = snapshot.val();
-                    if (roomData) {
-                        const players = roomData.players;
-                        
-                        if (players.white && players.white.uid === user.uid) {
-                            playerColor = 'white';
-                        } else if (players.black && players.black.uid === user.uid) {
-                            playerColor = 'black';
-                        } else {
-                            if (!playerColor) {
-                                alert('No eres parte de esta sala. Redirigiendo...');
-                                window.location.href = 'salas.html';
-                                return;
-                            }
-                        }
-
-                        // Ensure gameState exists and initialize if not
-                        if (roomData.gameState) {
-                            gameState = roomData.gameState;
-                        } else {
-                            gameState = initialGameState;
-                        }
-                        
-                        // Ensure gameInfo exists and initialize if not
-                        if (roomData.gameInfo) {
-                            gameInfo = roomData.gameInfo;
-                        } else {
-                            gameInfo = initialGameInfo;
-                        }
-                        
-                        const usersSnapshot = await usersRef.once('value');
-                        const allUsers = usersSnapshot.val();
-                        renderPlayers(players, allUsers);
-                        
-                        renderBoard();
-                        renderGameStatus();
-                        renderCapturedPieces(roomData.gameInfo);
-                        
-                        roomNameDisplay.textContent = `Sala: ${roomData.name}`;
-
-                    } else {
-                        alert('La sala ha sido eliminada por otro jugador. Redirigiendo a salas...');
-                        window.location.href = 'salas.html';
+        roomRef.on('value', async snapshot => {
+            const roomData = snapshot.val();
+            if (roomData) {
+                // Asignar colores de forma segura
+                if (!playerColor) {
+                    if (!roomData.players) {
+                        // Jugador 1, crea el estado inicial
+                        await roomRef.child('players/player1').set(user.uid);
+                        await roomRef.child('players/player1Color').set('white');
+                        await roomRef.child('gameState').set(initialGameState);
+                        await roomRef.child('gameInfo').set(initialGameInfo);
+                        playerColor = 'white';
+                    } else if (!roomData.players.player2 && roomData.players.player1 !== user.uid) {
+                        // Jugador 2, se une
+                        await roomRef.child('players/player2').set(user.uid);
+                        await roomRef.child('players/player2Color').set('black');
+                        playerColor = 'black';
+                    } else if (roomData.players.player1 === user.uid) {
+                        playerColor = roomData.players.player1Color;
+                    } else if (roomData.players.player2 === user.uid) {
+                        playerColor = roomData.players.player2Color;
                     }
-                });
-
-                if (playerColor) {
-                    const myPlayerRef = roomRef.child('players');
-                    myPlayerRef.child(playerColor).onDisconnect().update({ online: false })
-                        .then(() => {
-                            console.log('onDisconnect establecido para la sala.');
-                        })
-                        .catch(error => {
-                            console.error('Error estableciendo onDisconnect:', error);
-                        });
                 }
+
+                // Actualizar las variables globales del juego con los datos de Firebase
+                if (roomData.gameState && roomData.gameInfo) {
+                    gameState = roomData.gameState;
+                    gameInfo = roomData.gameInfo;
+                }
+                
+                // Renderizar el tablero y el estado del juego
+                if (playerColor) {
+                    renderBoard();
+                    renderGameStatus();
+                    renderCapturedPieces(gameInfo);
+                    updateCurrentTurnIndicator();
+                }
+
             } else {
-                window.location.href = 'index.html';
+                // La sala no existe, redirigir
+                alert('La sala ya no existe.');
+                window.location.href = 'salas.html';
             }
         });
+
+        // Configurar el onDisconnect para limpiar la sala si el último jugador se va
+        const userRoomRef = database.ref('rooms/' + roomId + '/players/' + user.uid);
+        userRoomRef.onDisconnect().remove().then(() => {
+            console.log('onDisconnect establecido para el jugador');
+        }).catch(error => {
+            console.error('Error estableciendo onDisconnect:', error);
+        });
+        
+    } else {
+        window.location.href = 'index.html';
+    }
+});
 
         function renderCapturedPieces(gameInfo) {
             whiteCapturedList.innerHTML = gameInfo.whiteCaptured.map(p => `<span class="captured-piece black">${pieceSymbols[p]}</span>`).join('');
