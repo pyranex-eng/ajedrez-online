@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajedrez Online - Inicio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #fff;
+        }
+        
+        #video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 46, 0.85);
+            z-index: -1;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            color: #e94560;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .user-info {
+            background-color: rgba(43, 43, 72, 0.8);
+            padding: 15px 25px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .username {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .game-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            max-width: 900px;
+            margin: 20px 0 40px;
+        }
+        
+        .option-card {
+            background: rgba(43, 43, 72, 0.9);
+            border-radius: 20px;
+            padding: 30px;
+            width: 280px;
+            height: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 2px solid transparent;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            border-color: #e94560;
+        }
+        
+        .option-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            color: #e94560;
+        }
+        
+        .option-title {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+        
+        .option-description {
+            color: #ccc;
+            margin-bottom: 25px;
+            flex-grow: 1;
+        }
+        
+        .option-btn {
+            background-color: #e94560;
+            color: #fff;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .option-btn:hover {
+            background-color: #ff6a80;
+            transform: scale(1.05);
+        }
+        
+        .logout-btn {
+            background-color: #7289da;
+            color: #fff;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        
+        .logout-btn:hover {
+            background-color: #5b6fb8;
+        }
+        
+        footer {
+            margin-top: 40px;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .game-options {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .option-card {
+                width: 100%;
+                max-width: 320px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <video id="video-background" autoplay muted loop>
+        <source src="videoajedrez.mp4" type="video/mp4">
+        Tu navegador no soporta videos HTML5.
+    </video>
+    <div class="overlay"></div>
+    
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chess-board"></i> Ajedrez Online</h1>
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar-display"><i class="fas fa-user"></i></div>
+                <div class="username" id="username-display">Jugador</div>
+            </div>
+        </header>
+        
+        <main>
+            <div class="game-options">
+                <div class="option-card">
+                    <i class="fas fa-user option-icon"></i>
+                    <h2 class="option-title">Un Jugador</h2>
+                    <p class="option-description">Juega contra la computadora y mejora tus habilidades de ajedrez a tu propio ritmo.</p>
+                    <button class="option-btn" id="singleplayer-btn">
+                        <i class="fas fa-play-circle"></i> Jugar
+                    </button>
+                </div>
+                
+                <div class="option-card">
+                    <i class="fas fa-users option-icon"></i>
+                    <h2 class="option-title">Multijugador</h2>
+                    <p class="option-description">Retrata a otros jugadores en línea en partidas emocionantes de ajedrez en tiempo real.</p>
+                    <button class="option-btn" id="multiplayer-btn">
+                        <i class="fas fa-play-circle"></i> Jugar
+                    </button>
+                </div>
+            </div>
+        </main>
+        
+        <button class="logout-btn" id="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+        </button>
+        
+        <footer>
+            <p>© 2023 Ajedrez Online - Desarrollado con <i class="fas fa-heart" style="color: #e94560;"></i> para amantes del ajedrez</p>
+        </footer>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAELxl8vQ3hea6OaD1pwZaoIDUrxY07vwg",
+            authDomain: "ajedrez-online-9da63.firebaseapp.com",
+            databaseURL: "https://ajedrez-online-9da63-default-rtdb.firebaseio.com",
+            projectId: "ajedrez-online-9da63",
+            storageBucket: "ajedrez-online-9da63.firebasestorage.app",
+            messagingSenderId: "841079328346",
+            appId: "1:841079328346:web:2a2f66f352ee8932ad9263",
+            measurementId: "G-ML6HGX08LE"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+        const usersRef = database.ref('users');
+        
+        let currentUser = null;
+        let userData = null;
+        
+        const usernameDisplay = document.getElementById('username-display');
+        const userAvatarDisplay = document.getElementById('user-avatar-display');
+        const logoutBtn = document.getElementById('logout-btn');
+        const singleplayerBtn = document.getElementById('singleplayer-btn');
+        const multiplayerBtn = document.getElementById('multiplayer-btn');
+        
+        function getAvatarIcon(avatarName) {
+            const icons = {
+                'avatar1': 'fa-chess-king',
+                'avatar2': 'fa-chess-queen',
+                'avatar3': 'fa-chess-knight',
+                'avatar4': 'fa-chess-bishop',
+                'avatar5': 'fa-chess-pawn'
+            };
+            return icons[avatarName] || 'fa-user';
+        }
+        
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                currentUser = user;
+                const userSnapshot = await usersRef.child(user.uid).once('value');
+                userData = userSnapshot.val();
+                
+                if (userData) {
+                    usernameDisplay.textContent = userData.username;
+                    userAvatarDisplay.innerHTML = `<i class="fas ${getAvatarIcon(userData.avatar)}"></i>`;
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+        
+        singleplayerBtn.addEventListener('click', () => {
+            window.location.href = 'jugador.html';
+        });
+        
+        multiplayerBtn.addEventListener('click', () => {
+            window.location.href = 'salas.html';
+        });
+        
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut()
+                .then(() => {
+                    window.location.href = 'index.html';
+                })
+                .catch(error => {
+                    console.error('Error cerrando sesión:', error);
+                });
+        });
+        
+        // Control de volumen del video (silenciado por defecto)
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('video-background');
+            video.volume = 0.1; // Volumen bajo para no ser intrusivo
+        });
+    </script>
+</body>
+</html>
