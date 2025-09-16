@@ -458,7 +458,7 @@
                 })
                 .then(() => {
                     console.log("Datos del usuario guardados en la base de datos.");
-                    window.location.href = 'salas.html';
+                    window.location.href = 'inicio.html';
                 })
                 .catch((error) => {
                     registerError.textContent = error.message;
@@ -486,7 +486,7 @@
             auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
                     console.log("Usuario ha iniciado sesión correctamente.");
-                    window.location.href = 'salas.html';
+                    window.location.href = 'inicio.html';
                 })
                 .catch((error) => {
                     // Muestra el mensaje de error específico de Firebase para depurar
